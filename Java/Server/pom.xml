@@ -32,7 +32,7 @@
                             <transformers>
                                 <transformer
                                     implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.walit.Driver</mainClass>
+                                    <mainClass>com.walit.lifeServer.ServerDriver</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
