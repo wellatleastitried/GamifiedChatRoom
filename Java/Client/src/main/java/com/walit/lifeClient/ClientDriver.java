@@ -1,4 +1,4 @@
-// package com.walit.lifeClient;
+package com.walit.lifeClient;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -39,7 +39,7 @@ public class ClientDriver implements Runnable {
             Thread thread = new Thread(input);
             thread.start();
             String inputChat;
-            while ((inputChat = inbound.readLine()) != null) {
+            while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
                 System.out.println(inputChat);
             }
         } catch (Exception e) {
