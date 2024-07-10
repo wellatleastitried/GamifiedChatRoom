@@ -13,19 +13,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class ServerDriver {
-    // Create server socket that accepts connections
-    // Create fixed thread pool that allocates new thread for each client
+
     private final ThreadPoolExecutor threadPool;
     private final ArrayList<ClientHandler> connections;
     private boolean KEEP_ALIVE;
-
 
     public static void main(String[] args) {
         Scanner s = new Scanner(System.in);
         ServerDriver sD = null;
         System.out.println("How many people do you expect to connect to this server? (Enter a number OR enter \"no\" if you are unsure):");
         String expectedConnections = s.nextLine();
-        if (expectedConnections.toLowerCase().equals("no")) {
+        if (expectedConnections.equalsIgnoreCase("no")) {
             System.out.println(ServerMessage.ServerCachedThreads.getMessage());
             sD = new ServerDriver();
         } else {
@@ -37,6 +35,7 @@ public class ServerDriver {
                 System.err.println("Not a valid input. Shutting down.");
             }
         }
+        assert(sD != null);
         if (sD.runServer() == 0) {
             System.out.println("Server has successfully terminated.");
         } else {
@@ -164,8 +163,7 @@ public class ServerDriver {
                             shutdown();
                         } else if (chat.toLowerCase().startsWith("&help")) {
                             messageClient(getHelpText());
-                        } else if (chat.toLowerCase().startsWith("&set speed")) { // TODO: Make get speed
-                            messageClient("set speed called.");
+                        } else if (chat.toLowerCase().startsWith("&set speed")) {
                             String[] speedCall = chat.split(" ");
                             if (speedCall.length != 3) {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
@@ -181,7 +179,14 @@ public class ServerDriver {
                             } catch (NumberFormatException nFE) {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
                             }
-                        } else if (chat.toLowerCase().startsWith("&set size")) { // TODO: Make get size
+                            messageClient("Tick speed has been set.");
+                        } else if (chat.toLowerCase().startsWith("&get speed")) {
+                            if (isValidSpeed(SPEED)) {
+                                messageClient("Current set speed is: " + SPEED);
+                            } else {
+                                messageClient(ServerMessage.UnsetValue.getMessage());
+                            }
+                        } else if (chat.toLowerCase().startsWith("&set size")) {
                             String[] sizeValues = chat.split(" ");
                             if (sizeValues.length != 4) {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
@@ -200,20 +205,31 @@ public class ServerDriver {
                             } catch (NumberFormatException nFE) {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
                             }
+                        } else if (chat.toLowerCase().startsWith("&get size")) {
+                            if (isValidSize(xSize, ySize)) {
+                                messageClient(String.format("Current size:\nx -> %d\ny -> %d\n", xSize, ySize));
+                            } else {
+                                messageClient(ServerMessage.UnsetValue.getMessage());
+                            }
                         } else if (chat.toLowerCase().startsWith("&set init pos")) {
-                            messageClient("set init pos called.");
-                            // Bring up GUI for client (size must already be given) where they can click on cells they want to be "alive"
-                        } else if (chat.toLowerCase().startsWith("&start sim")) {
+                            if (!isValidSize(xSize, ySize)) {
+                                messageClient("There is not a valid grid size set. Use '&set size x y' to change this.");
+                                continue;
+                            }
+                            messageClient(String.format("SIZE:%d:%d", xSize, ySize));
+                            String initialRes = inbound.readLine();
+                            startPosition = deserializeStartBoard(initialRes);
+                        } else if (chat.toLowerCase().startsWith("&start sim")) { //TODO
                             messageClient("Checking configuration...");
                             if (isValidSpeed(SPEED) && isValidSize(xSize, ySize)) {
                                 if (startPosition == null) {
+                                    messageClient("You did not set a starting position. It will be randomly generated for you.");
                                     startPosition = getRandomlyGeneratedPosition();
                                 }
                                 if (!startSim()) {
                                     messageClient(ServerMessage.SimulationFailure.getMessage());
                                 }
                             }
-
                         } else if (chat.toLowerCase().startsWith("&name")) {
                             if (nameChangesRemaining == 0) {
                                 messageClient("You have no name changes remaining.");
@@ -252,9 +268,20 @@ public class ServerDriver {
                 shutdown();
             } catch (NullPointerException nPE) {
                 System.err.println(ServerMessage.WaitingClientError.getMessage());
+                shutdown();
             }
         }
-
+        private int[][] deserializeStartBoard(String data) {
+            int[][] board = new int[ySize][xSize];
+            String[] rows = data.split(";");
+            for (int i = 0; i < ySize; i++) {
+                String[] elements = rows[i].split(",");
+                for (int j = 0; j < xSize; j++) {
+                    board[i][j] = Integer.parseInt(elements[j]);
+                }
+            }
+            return board;
+        }
         public String getHelpText() {
             StringBuilder helpTxt = new StringBuilder();
             helpTxt.append("#######################################################################################");
@@ -265,6 +292,9 @@ public class ServerDriver {
             helpTxt.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
             helpTxt.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
             helpTxt.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n");
+
+            helpTxt.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
+            helpTxt.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
 
             helpTxt.append("\n---------------------------------------------------------------------------------------\n\n");
             helpTxt.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");

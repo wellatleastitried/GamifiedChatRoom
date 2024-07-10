@@ -5,30 +5,56 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="08a8e998-a4c5-457e-8541-3db13f3c5637" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Input.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/SetPosition/InitialPosition.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Input.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/SetPosition/InitialPosition$1.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/SetPosition/InitialPosition$ButtonClickListener.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/SetPosition/InitialPosition.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Server/out/artifacts/GameOfLifeServer/gameOfLife.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/artifacts/GameOfLifeClient/gameOfLife.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/GameOfLifeClient/gameOfLife.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/ClientDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/ClientDriver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/ClientDriver$Input.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/ClientDriver.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/ClientDriver.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/.idea/artifacts/GameOfLife.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/.idea/artifacts/GameOfLifeServer.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Server/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../temp/GridFrame.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerDriver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerMessage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/target/classes/com/walit/lifeServer/ServerDriver$ClientHandler.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/target/classes/com/walit/lifeServer/ServerDriver$ClientHandler.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/target/classes/com/walit/lifeServer/ServerDriver.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/target/classes/com/walit/lifeServer/ServerDriver.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Server/target/classes/com/walit/lifeServer/ServerMessage.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/target/classes/com/walit/lifeServer/ServerMessage.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../temp/GridFrameTest.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "wellatleastitried"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;wellatleastitried&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/wellatleastitried/ConwaysGameOfLife.git",
-    "accountId": "827d453f-35ea-46f8-95d7-67cc7a884ccc"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/wellatleastitried/ConwaysGameOfLife.git&quot;,
+    &quot;accountId&quot;: &quot;827d453f-35ea-46f8-95d7-67cc7a884ccc&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
@@ -43,6 +69,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.ClientDriver.executor": "Run",
+    "Application.InitialPosition.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "main",
@@ -52,7 +79,7 @@
     "project.structure.last.edited": "Artifacts",
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "Errors"
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   }
 }]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />

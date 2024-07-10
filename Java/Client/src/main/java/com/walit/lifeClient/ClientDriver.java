@@ -1,17 +1,19 @@
 package com.walit.lifeClient;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import com.walit.lifeClient.SetPosition.*;
+
+import java.io.*;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class ClientDriver implements Runnable {
 
     private Socket client;
-    private boolean KEEP_ALIVE;
+    public boolean KEEP_ALIVE;
     private BufferedReader inbound;
-    private PrintWriter outbound;
+    public PrintWriter outbound;
+
+    private boolean waitForCoordsResponse = false;
 
     public ClientDriver() {
         KEEP_ALIVE = true;
@@ -32,39 +34,56 @@ public class ClientDriver implements Runnable {
     @Override
     public void run() {
         try {
-            client = new Socket("192.168.56.1", 4444);
+            client = new Socket("10.0.0.56", 4444); // Change to public IP
             inbound = new BufferedReader(new InputStreamReader(client.getInputStream()));
             outbound = new PrintWriter(client.getOutputStream(), true);
-            Input input = new Input();
+            Input input = new Input(this);
             Thread thread = new Thread(input);
             thread.start();
             String inputChat;
             while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
-                System.out.println(inputChat);
+                if (waitForCoordsResponse) {
+                    handleSizeMessage(inputChat.substring(5));
+                    waitForCoordsResponse = false;
+                } else {
+                    System.out.println(inputChat);
+                }
             }
         } catch (Exception e) {
+            System.out.println("Exception in run():\n" + e.getMessage());
             shutdown();
         }
     }
-    class Input implements Runnable {
-        @Override
-        public void run() {
-            try {
-                BufferedReader readIn = new BufferedReader(new InputStreamReader(System.in));
-                while (KEEP_ALIVE) {
-                    String chat = readIn.readLine();
-                    if (chat.equalsIgnoreCase("&quit")) {
-                        outbound.println(chat);
-                        readIn.close();
-                        shutdown();
-                    } else {
-                        outbound.println(chat);
-                    }
-                }
-            } catch (Exception e) {
-                shutdown();
-            }
+    public void sendCommand(String cmd) {
+        outbound.println(cmd);
+        if (cmd.equalsIgnoreCase("&set init pos")) {
+            waitForCoordsResponse = true;
         }
+    }
+    private void handleSizeMessage(String input) {
+        String[] strSize = input.split(":");
+        int x = 0;
+        int y = 0;
+        try {
+            x = Integer.parseInt(strSize[0]);
+            y = Integer.parseInt(strSize[1]);
+        } catch (Exception e) {
+            System.err.println("Exception in handleSizeMessage:\n" + e.getMessage());
+            shutdown();
+        }
+        InitialPosition frame = new InitialPosition(x, y);
+        while (!frame.isSavePressed) {
+            Thread.onSpinWait();
+        }
+        int[][] initFrame = frame.getFinalCustomPosition();
+        outbound.println(serializeIntArray(initFrame));
+    }
+    private String serializeIntArray(int[][] array) {
+        StringBuilder sB = new StringBuilder();
+        for (int[] row : array) {
+            sB.append(Arrays.toString(row).replaceAll("[\\[\\]\\s]", "")).append(";");
+        }
+        return sB.toString();
     }
     public static void main(String[] args) {
         ClientDriver client = new ClientDriver();

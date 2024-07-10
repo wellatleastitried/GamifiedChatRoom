@@ -13,7 +13,8 @@ public enum ServerMessage {
         SimulationFailure("Simulation has had an unexpected error."),
         WaitingClientError("[!] Null pointer exception from client in waiting room."),
         ServerCachedThreads("[*] Starting server with cached thread pool."),
-        ServerFixedThreads("[*] Starting server with fixed thread pool of size: ");
+        ServerFixedThreads("[*] Starting server with fixed thread pool of size: "),
+        UnsetValue("[*] This value has not been set. Use 'help' to find the proper command to set this value.");
 
         private final String message;
 

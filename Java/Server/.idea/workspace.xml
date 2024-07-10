@@ -10,9 +10,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e0eac151-d495-48eb-acf2-6de5e32eb311" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/Input.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/SetPosition/InitialPosition.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/Input.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/SetPosition/InitialPosition$1.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/SetPosition/InitialPosition$ButtonClickListener.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/SetPosition/InitialPosition.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/out/artifacts/GameOfLifeServer/gameOfLife.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/out/artifacts/GameOfLifeClient/gameOfLife.jar" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/out/artifacts/GameOfLifeClient/gameOfLife.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/ClientDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/ClientDriver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/ClientDriver$Input.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/ClientDriver.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/ClientDriver.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/artifacts/GameOfLife.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/artifacts/GameOfLifeServer.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../temp/GridFrame.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerDriver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerMessage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerDriver$ClientHandler.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerDriver$ClientHandler.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerDriver.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerDriver.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerMessage.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerMessage.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../temp/GridFrameTest.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,24 +81,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "Application.Driver.executor": "Run",
-    "Application.ServerDriver.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "jdk.selected.JAVA_MODULE": "Android API 34, extension level 7 Platform",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/user/OneDrive/Documents/GitHub/ConwaysGameOfLife/Java/Client",
-    "project.structure.last.edited": "Artifacts",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "Errors"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;Application.Driver.executor&quot;: &quot;Run&quot;,
+    &quot;Application.ServerDriver.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;Android API 34, extension level 7 Platform&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/user/OneDrive/Documents/GitHub/ConwaysGameOfLife/Java/Client&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Artifacts&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;Errors&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\user\OneDrive\Documents\GitHub\ConwaysGameOfLife\src\main\java\com\walit" />

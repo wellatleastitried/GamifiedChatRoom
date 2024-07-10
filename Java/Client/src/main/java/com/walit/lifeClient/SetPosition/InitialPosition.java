@@ -1,20 +1,18 @@
+package com.walit.lifeClient.SetPosition;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.security.SecureRandom;
 
-public class GridFrameTest extends JFrame {
-    private JButton[][] buttons;
-    private int[][] buttonStates;
-    public boolean isSavePressed = false;
-    private int rows;
-    private int cols;
+public class InitialPosition extends JFrame {
 
-    public GridFrameTest(int cols, int rows) {
+    private final JButton[][] buttons;
+    public int[][] buttonStates;
+    public boolean isSavePressed = false;
+
+    public InitialPosition(int cols, int rows) {
         super("Grid Frame");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -44,7 +42,7 @@ public class GridFrameTest extends JFrame {
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         int screenWidth = (int) screenSize.getWidth();
         int screenHeight = (int) screenSize.getHeight();
-        setSize(frameWidth < screenWidth ? frameWidth : screenWidth, frameHeight < screenHeight ? frameHeight : screenHeight);
+        setSize(Math.min(frameWidth, screenWidth), Math.min(frameHeight, screenHeight));
 
         setLocationRelativeTo(null);
 
@@ -61,18 +59,16 @@ public class GridFrameTest extends JFrame {
                 saveToFile();
             }
         });
-        this.rows = rows;
-        this.cols = cols;
         setVisible(true);
     }
 
     public int[][] getFinalCustomPosition() {
-        return buttonStates;
+        return isSavePressed ? buttonStates : null;
     }
 
     private class ButtonClickListener implements ActionListener {
-        private int row;
-        private int col;
+        private final int row;
+        private final int col;
 
         public ButtonClickListener(int row, int col) {
             this.row = row;
@@ -89,39 +85,9 @@ public class GridFrameTest extends JFrame {
         }
     }
 
-    public int[][] saveToFile() {
-        System.out.println("Grid state:");
-        for (int i = 0; i < buttonStates.length; i++) {
-            for (int j = 0; j < buttonStates[0].length; j++) {
-                System.out.print(buttonStates[i][j] + " ");
-            }
-            System.out.println();
-        }
+    public void saveToFile() {
         isSavePressed = true;
-        System.out.println(buttonStates.length);
-        JOptionPane.showMessageDialog(this, "Grid state printed to console.");
+        JOptionPane.showMessageDialog(this, "Grid state sent to server, you may close this window.");
         dispose();
-        return buttonStates;
-    }
-    // This will be set in the constructor once implemented
-    public static void main(String[] args) {
-        int rows = 40;
-        int cols = 5;
-        GridFrameTest frame = new GridFrameTest(cols, rows);
-        while (!frame.isSavePressed) {
-            Thread.onSpinWait();
-        }
-        int[][] position = new int[rows][cols];
-    }
-
-    public static int[][] autofillArray(int rows, int cols) {
-        int[][] array = new int[rows][cols];
-        SecureRandom random = new SecureRandom();
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                array[i][j] = random.nextInt(2);
-            }
-        }
-        return array;
     }
 }
