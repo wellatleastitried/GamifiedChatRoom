@@ -6,11 +6,15 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.time.Instant;
 
 public class ServerDriver {
 
@@ -68,6 +72,7 @@ public class ServerDriver {
                 ClientHandler client = new ClientHandler(clientSocket);
                 connections.add(client);
                 threadPool.execute(client);
+                checkConcurrentUsers(connections.size());
             }
             messageAllClients(ServerMessage.ServerShutdown.getMessage());
             System.out.println(ServerMessage.ServerShutdown.getMessage());
@@ -78,6 +83,12 @@ public class ServerDriver {
             return 1;
         }
         return 0;
+    }
+
+    private void checkConcurrentUsers(int userCount) {
+        if (userCount >= 1000) {
+            // TODO: Send me a text or email so that I know that I need to host this on a better server
+        }
     }
 
     private void shutdown() {
@@ -96,6 +107,27 @@ public class ServerDriver {
         }
     }
 
+    private String getUniqueSignature(String ipAddress, String name) {
+        try {
+            long currentTimeMillis = Instant.now().toEpochMilli();
+            String uniqueIdentifier = name + ":" + ipAddress + ":" + currentTimeMillis;
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(uniqueIdentifier.getBytes());
+            StringBuilder builder = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    builder.append("0");
+                }
+                builder.append(hex);
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException noAlg) {
+            System.err.println(ServerMessage.FailedSignatureGeneration.getMessage());
+        }
+        return "Failed";
+    }
+
     class ClientHandler implements Runnable {
 
         private final Socket connection;
@@ -110,6 +142,9 @@ public class ServerDriver {
         private int ySize = -1;
         private int[][] startPosition;
 
+        private boolean signatureSet = false;
+        private String connectionSignature;
+
         public ClientHandler(Socket connection) {
             this.connection = connection;
         }
@@ -119,12 +154,64 @@ public class ServerDriver {
         }
 
         private boolean isValidSize(int x, int y) {
-            return x > 5 && x < 1000 && y < 750 && y > 3;
+            return x > 5 && x <= 1000 && y < 750 && y > 3;
         }
 
-        private boolean startSim() {
-            messageClient(ServerMessage.SimulationSuccess.getMessage());
-            return true;
+        private int startSim() {
+            messageClient(ServerMessage.SimulationStarted.getMessage());
+            // Have connectionSignature at the start of every frame sent
+            int[][] previousState = new int[startPosition.length][startPosition[0].length];
+            int[][] nextState = new int[startPosition.length][startPosition[0].length];
+
+            /*
+            outbound.println(connectionSignature + serializeFrame(startPosition);
+            previousState = startPosition
+            nextState = generateNextFrame(previousState);
+            while (nextState != previousState) {
+                outbound.println(connectionSignature + serializeFrame(nextState);
+                previousState = nextState;
+                nextState = generateNextFrame(previousState);
+            }
+             */
+            return 1;
+        }
+
+        private int countNeighbors(int[][] frame, int x, int y) {
+            int count = 0;
+
+            return count;
+        }
+
+        private int[][] generateNextFrame(int[][] lastFrame) {
+            /*
+            Rules of Conway's Game of Life
+            1. Any live cell with fewer than two live neighbors dies
+            2. Any live cell with two or three live neighbors lives
+            3. Any live cell with more than three live neighbors dies
+            4. Any dead cell with exactly three live neighbors becomes alive
+             */
+            int[][] result = new int[lastFrame.length][lastFrame[0].length];
+            for (int i = 0; i < lastFrame.length; i++) {
+                for (int j = 0; j < lastFrame[i].length; j++) {
+                    int neighbors = countNeighbors(lastFrame, j, i);
+                    if (lastFrame[i][j] == 1 && neighbors > 3) {
+                        result[i][j] = 0;
+                    } else if ((lastFrame[i][j] == 1 && neighbors >= 2) || (lastFrame[i][j] == 0 && neighbors == 3)) {
+                        result[i][j] = 1;
+                    } else {
+                        result[i][j] = 0;
+                    }
+                }
+            }
+            return result;
+        }
+
+        private String serializeFrame(int[][] frame) {
+            StringBuilder builder = new StringBuilder();
+            for (int[] row : frame) {
+                builder.append(Arrays.toString(row).replaceAll("[\\[\\]\\s]", "")).append(";");
+            }
+            return builder.toString();
         }
 
         private int[][] getRandomlyGeneratedPosition() {
@@ -146,14 +233,18 @@ public class ServerDriver {
             try {
                 outbound = new PrintWriter(connection.getOutputStream(), true);
                 inbound = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String tempName = connection.getRemoteSocketAddress().toString().split(":")[0].substring(1);
-                System.out.println("    | " + tempName + " has connected.");
+                String ipAddress = connection.getRemoteSocketAddress().toString().split(":")[0].substring(1);
+                System.out.println("    | " + ipAddress + " has connected.");
                 while (name == null || name.length() > 20 || name.length() < 2 && !name.startsWith("&")) {
                     outbound.println("Enter your name: ");
                     name = inbound.readLine();
                 }
-                System.out.printf("%s registered the name %s.%n", tempName, name);
-                messageAllClients(name + " has joined the server.");
+                System.out.printf("%s registered the name %s.%n", ipAddress, name);
+                messageAllClients(name + " has joined the server.\n");
+
+                // Generate signature and send to client
+                connectionSignature = getUniqueSignature(ipAddress, name);
+                messageClient("Send the following command to validate your connection:\n&set server signature " + connectionSignature + "\n");
                 String chat;
                 while ((chat = inbound.readLine()) != null) {
                     if (chat.toLowerCase().startsWith("&")) {
@@ -161,6 +252,9 @@ public class ServerDriver {
                             messageAllClients(name + " left the server.");
                             System.out.println("[*] " + name + ServerMessage.ServerClientDC.getMessage());
                             shutdown();
+                        } else if (chat.contains(connectionSignature)) {
+                            signatureSet = true;
+                            messageClient(ServerMessage.SignatureSet.getMessage());
                         } else if (chat.toLowerCase().startsWith("&help")) {
                             messageClient(getHelpText());
                         } else if (chat.toLowerCase().startsWith("&set speed")) {
@@ -221,14 +315,22 @@ public class ServerDriver {
                             startPosition = deserializeStartBoard(initialRes);
                         } else if (chat.toLowerCase().startsWith("&start sim")) { //TODO
                             messageClient("Checking configuration...");
+                            if (!signatureSet) {
+                                messageClient(ServerMessage.SignatureNotSet.getMessage());
+                                continue;
+                            }
                             if (isValidSpeed(SPEED) && isValidSize(xSize, ySize)) {
                                 if (startPosition == null) {
                                     messageClient("You did not set a starting position. It will be randomly generated for you.");
                                     startPosition = getRandomlyGeneratedPosition();
                                 }
-                                if (!startSim()) {
+                                if (startSim() == 1) {
+                                    messageClient(ServerMessage.SimulationFinished.getMessage());
+                                } else {
                                     messageClient(ServerMessage.SimulationFailure.getMessage());
                                 }
+                            } else {
+                                messageClient(ServerMessage.SimulationInvalid.getMessage());
                             }
                         } else if (chat.toLowerCase().startsWith("&name")) {
                             if (nameChangesRemaining == 0) {
@@ -282,27 +384,28 @@ public class ServerDriver {
             }
             return board;
         }
-        public String getHelpText() {
+        private String getHelpText() {
             StringBuilder helpTxt = new StringBuilder();
             helpTxt.append("#######################################################################################");
-            helpTxt.append("\nHow to use commands: \n");
-            helpTxt.append("&quit            ->    Enter to exit the chat.\n");
-            helpTxt.append("&name NEW_NAME   ->    Enter to change name (2 name changes allowed).\n");
-
+            helpTxt.append("\nHow to use commands: \n\n");
+            helpTxt.append("&quit            ->    Enter to exit the chat.\n\n");
+            helpTxt.append("&name NEW_NAME   ->    Enter to change name (2 name changes allowed).\n\n");
+            if (!signatureSet) {
+                helpTxt.append("Use this command to verify the signature with the server.\n");
+                helpTxt.append(String.format("&set server signature %s\n\n", connectionSignature));
+            }
             helpTxt.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
             helpTxt.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
-            helpTxt.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n");
-
+            helpTxt.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
             helpTxt.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
             helpTxt.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
-
             helpTxt.append("\n---------------------------------------------------------------------------------------\n\n");
             helpTxt.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
             helpTxt.append("#######################################################################################");
             return helpTxt.toString();
         }
 
-        public void shutdown() {
+        private void shutdown() {
             try {
                 outbound.close();
                 inbound.close();
@@ -314,7 +417,7 @@ public class ServerDriver {
             }
         }
 
-        public void messageClient(String message) {
+       private void messageClient(String message) {
             outbound.println(message);
         }
     }

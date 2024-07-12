@@ -19,7 +19,13 @@ public class Input implements Runnable {
                     readIn.close();
                     clientDriver.shutdown();
                 } else if (chat.equalsIgnoreCase("&set init pos")) {
-                    clientDriver.sendCommand(chat);
+                    clientDriver.sendAndHandleCommand(chat);
+                } else if (chat.toLowerCase().startsWith("&set size")) {
+                    clientDriver.sendAndHandleCommand(chat);
+                } else if (chat.equalsIgnoreCase("&start sim")) {
+                    clientDriver.sendAndHandleCommand(chat);
+                } else if (chat.startsWith("&set server signature")) {
+                    clientDriver.sendAndHandleCommand(chat);
                 } else {
                     clientDriver.outbound.println(chat);
                 }

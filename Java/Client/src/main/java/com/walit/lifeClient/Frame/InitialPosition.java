@@ -1,10 +1,9 @@
-package com.walit.lifeClient.SetPosition;
+package com.walit.lifeClient.Frame;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.security.SecureRandom;
 
 public class InitialPosition extends JFrame {
 
