@@ -46,7 +46,7 @@ public class ClientDriver implements Runnable {
     @Override
     public void run() {
         try {
-            client = new Socket("10.0.0.56", 4444); // Change to public IP
+            client = new Socket("10.0.0.59", 4444); // Change to public IP
             inbound = new BufferedReader(new InputStreamReader(client.getInputStream()));
             outbound = new PrintWriter(client.getOutputStream(), true);
             Input input = new Input(this);
@@ -54,11 +54,11 @@ public class ClientDriver implements Runnable {
             thread.start();
             String inputChat;
             while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
-                if (inputChat.equals("KILL")) {
+                if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
                     KILL_SIM = true;
                 }
-                if (waitForInitialPositionResponse) {
-                    handleSizeMessage(inputChat.substring(5));
+                if (waitForInitialPositionResponse && inputChat.startsWith(SERVER_SIGNATURE + ":SIZE:")) {
+                    handleSizeMessage(inputChat.substring(70));
                     waitForInitialPositionResponse = false;
                 } else if (simIsReady) {
                     assert(!simulationRunning);
@@ -99,6 +99,8 @@ public class ClientDriver implements Runnable {
                             KILL_SIM = false;
                             sim.shutdown();
                         }
+                    } else if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
+                        KILL_SIM = true;
                     } else {
                         System.out.println(inputChat);
                     }

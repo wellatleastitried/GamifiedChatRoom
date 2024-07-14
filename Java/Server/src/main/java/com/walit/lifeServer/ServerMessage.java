@@ -16,7 +16,7 @@ public enum ServerMessage {
         SimulationFinished("[*] Simulation has completed successfully."),
         SimulationInvalid("[!] Simulation cannot start because there are invalid settings set."),
         SimulationFailure("Simulation has had an unexpected error."),
-        WaitingClientError("[!] Null pointer exception from client in waiting room."),
+        NullException("Null pointer exception encountered, closing client connection."),
         ServerCachedThreads("[*] Starting server with cached thread pool."),
         ServerFixedThreads("[*] Starting server with fixed thread pool of size: "),
         UnsetValue("[*] This value has not been set. Use 'help' to find the proper command to set this value.");

@@ -9,12 +9,12 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 public class ServerDriver {
 
@@ -141,12 +141,28 @@ public class ServerDriver {
         private int xSize = -1;
         private int ySize = -1;
         private int[][] startPosition;
+        private final int[][] neighbors = new int[][] {
+                {0, 1},
+                {0, -1},
+                {1, -1},
+                {1, 0},
+                {1, 1},
+                {-1, -1},
+                {-1, 0},
+                {-1, 1}
+        };
+        private final Map<Integer, Integer> speedToFPS = new HashMap<>();
 
         private boolean signatureSet = false;
         private String connectionSignature;
 
         public ClientHandler(Socket connection) {
             this.connection = connection;
+            speedToFPS.put(1, 1);
+            speedToFPS.put(2, 3);
+            speedToFPS.put(3, 5);
+            speedToFPS.put(4, 7);
+            speedToFPS.put(5, 10);
         }
 
         private boolean isValidSpeed(int passedSpeed) {
@@ -159,26 +175,46 @@ public class ServerDriver {
 
         private int startSim() {
             messageClient(ServerMessage.SimulationStarted.getMessage());
-            // Have connectionSignature at the start of every frame sent
-            int[][] previousState = new int[startPosition.length][startPosition[0].length];
-            int[][] nextState = new int[startPosition.length][startPosition[0].length];
+            int[][] previousState;
+            int[][] nextState;
 
-            /*
-            outbound.println(connectionSignature + serializeFrame(startPosition);
-            previousState = startPosition
+            int tick = convertSpeedToTickRate(SPEED);
+
+            outbound.println(connectionSignature + serializeFrame(startPosition));
+            previousState = startPosition;
             nextState = generateNextFrame(previousState);
             while (nextState != previousState) {
-                outbound.println(connectionSignature + serializeFrame(nextState);
+                try {
+                    TimeUnit.MILLISECONDS.sleep(tick);
+                } catch (InterruptedException iE) {
+                    Thread.currentThread().interrupt();
+                }
+                outbound.println(connectionSignature + serializeFrame(nextState));
                 previousState = nextState;
                 nextState = generateNextFrame(previousState);
             }
-             */
             return 1;
+        }
+
+        private int convertSpeedToTickRate(int speed) {
+            return 1000 / speedToFPS.get(speed);
         }
 
         private int countNeighbors(int[][] frame, int x, int y) {
             int count = 0;
-
+            for (int[] neighbor : neighbors) {
+                int row = x + neighbor[0];
+                int col = y + neighbor[1];
+                if (row < 0 || row >= frame.length) {
+                    continue;
+                }
+                if (col < 0 || col >= frame[0].length) {
+                    continue;
+                }
+                if (frame[row][col] == 1) {
+                    count++;
+                }
+            }
             return count;
         }
 
@@ -244,6 +280,9 @@ public class ServerDriver {
 
                 // Generate signature and send to client
                 connectionSignature = getUniqueSignature(ipAddress, name);
+                if (connectionSignature.equals("Failed")) {
+                    messageClient("Error generating unique signature, try reconnecting if you want to use the simulation functionality.");
+                }
                 messageClient("Send the following command to validate your connection:\n&set server signature " + connectionSignature + "\n");
                 String chat;
                 while ((chat = inbound.readLine()) != null) {
@@ -310,10 +349,14 @@ public class ServerDriver {
                                 messageClient("There is not a valid grid size set. Use '&set size x y' to change this.");
                                 continue;
                             }
-                            messageClient(String.format("SIZE:%d:%d", xSize, ySize));
+                            String message = String.format("%s:SIZE:%d:%d", connectionSignature, xSize, ySize);
+                            messageClient(message);
+                            System.out.println(message);
+                            System.out.println("Length: " + message.length());
                             String initialRes = inbound.readLine();
                             startPosition = deserializeStartBoard(initialRes);
-                        } else if (chat.toLowerCase().startsWith("&start sim")) { //TODO
+                            messageClient("Initial position of simulation has been set.");
+                        } else if (chat.toLowerCase().startsWith("&start sim")) { // TODO
                             messageClient("Checking configuration...");
                             if (!signatureSet) {
                                 messageClient(ServerMessage.SignatureNotSet.getMessage());
@@ -369,10 +412,12 @@ public class ServerDriver {
                 System.err.println(name + ServerMessage.ServerClientDC.getMessage());
                 shutdown();
             } catch (NullPointerException nPE) {
-                System.err.println(ServerMessage.WaitingClientError.getMessage());
+                System.err.println(ServerMessage.NullException.getMessage());
+                System.err.println(nPE.getMessage());
                 shutdown();
             }
         }
+
         private int[][] deserializeStartBoard(String data) {
             int[][] board = new int[ySize][xSize];
             String[] rows = data.split(";");
@@ -384,6 +429,7 @@ public class ServerDriver {
             }
             return board;
         }
+
         private String getHelpText() {
             StringBuilder helpTxt = new StringBuilder();
             helpTxt.append("#######################################################################################");
@@ -412,12 +458,13 @@ public class ServerDriver {
                 if (!connection.isClosed()) {
                     connection.close();
                 }
+                System.err.println("Closed connection to client.");
             } catch (IOException iE) {
                 System.err.println("Error closing resources.");
             }
         }
 
-       private void messageClient(String message) {
+        private void messageClient(String message) {
             outbound.println(message);
         }
     }

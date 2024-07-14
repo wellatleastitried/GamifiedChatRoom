@@ -5,19 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="08a8e998-a4c5-457e-8541-3db13f3c5637" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Frame/SimulationRender.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/artifacts/GameOfLifeClient/gameOfLife.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/GameOfLifeClient/gameOfLife.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/ClientDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/ClientDriver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Input.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Input.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/SetPosition/InitialPosition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Frame/InitialPosition.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Frame/InitialPosition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Frame/InitialPosition.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Frame/SimulationRender.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeClient/Frame/SimulationRender.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/ClientDriver.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/ClientDriver.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Input.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Input.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/SetPosition/InitialPosition$1.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/SetPosition/InitialPosition$ButtonClickListener.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/SetPosition/InitialPosition.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Frame/InitialPosition.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Frame/InitialPosition.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Frame/SimulationRender.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeClient/Frame/SimulationRender.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Server/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Server/out/artifacts/GameOfLife/GameOfLife.jar" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../Server/out/artifacts/GameOfLifeServer/gameOfLife.jar" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/out/artifacts/GameOfLifeServer/gameOfLife.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerDriver.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Server/src/main/java/com/walit/lifeServer/ServerMessage.java" afterDir="false" />
@@ -62,22 +58,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.ClientDriver.executor": "Run",
-    "Application.InitialPosition.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/user/OneDrive/Documents/GitHub/ConwaysGameOfLife/Java/Client",
-    "project.structure.last.edited": "Artifacts",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.ClientDriver.executor&quot;: &quot;Run&quot;,
+    &quot;Application.InitialPosition.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/user/OneDrive/Documents/GitHub/ConwaysGameOfLife/Java/Client&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Artifacts&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">

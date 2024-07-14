@@ -12,7 +12,7 @@ public class InitialPosition extends JFrame {
     public boolean isSavePressed = false;
 
     public InitialPosition(int cols, int rows) {
-        super("Grid Frame");
+        super("Set Initial Position");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         GridLayout gridLayout = new GridLayout(rows, cols);
