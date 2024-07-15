@@ -10,7 +10,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.time.Instant;
@@ -151,6 +150,7 @@ public class ServerDriver {
                 {-1, 0},
                 {-1, 1}
         };
+        private boolean newFrameIsDifferent = true;
         private final Map<Integer, Integer> speedToFPS = new HashMap<>();
 
         private boolean signatureSet = false;
@@ -177,13 +177,16 @@ public class ServerDriver {
             messageClient(ServerMessage.SimulationStarted.getMessage());
             int[][] previousState;
             int[][] nextState;
-
             int tick = convertSpeedToTickRate(SPEED);
-
             outbound.println(connectionSignature + serializeFrame(startPosition));
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (InterruptedException iE) {
+                Thread.currentThread().interrupt();
+            }
             previousState = startPosition;
             nextState = generateNextFrame(previousState);
-            while (nextState != previousState) {
+            while (newFrameIsDifferent) {
                 try {
                     TimeUnit.MILLISECONDS.sleep(tick);
                 } catch (InterruptedException iE) {
@@ -193,6 +196,7 @@ public class ServerDriver {
                 previousState = nextState;
                 nextState = generateNextFrame(previousState);
             }
+            outbound.println(connectionSignature + " KILL");
             return 1;
         }
 
@@ -219,6 +223,8 @@ public class ServerDriver {
         }
 
         private int[][] generateNextFrame(int[][] lastFrame) {
+            newFrameIsDifferent = true;
+            int count = 0;
             /*
             Rules of Conway's Game of Life
             1. Any live cell with fewer than two live neighbors dies
@@ -237,7 +243,13 @@ public class ServerDriver {
                     } else {
                         result[i][j] = 0;
                     }
+                    if (result[i][j] == lastFrame[i][j]) {
+                        count++;
+                    }
                 }
+            }
+            if (count == lastFrame.length * lastFrame[0].length) {
+                newFrameIsDifferent = false;
             }
             return result;
         }
@@ -351,8 +363,6 @@ public class ServerDriver {
                             }
                             String message = String.format("%s:SIZE:%d:%d", connectionSignature, xSize, ySize);
                             messageClient(message);
-                            System.out.println(message);
-                            System.out.println("Length: " + message.length());
                             String initialRes = inbound.readLine();
                             startPosition = deserializeStartBoard(initialRes);
                             messageClient("Initial position of simulation has been set.");

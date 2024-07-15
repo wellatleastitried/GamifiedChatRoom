@@ -1,7 +1,9 @@
 package com.walit.lifeClient.Frame;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
+import java.util.concurrent.TimeUnit;
 
 public class SimulationRender extends JFrame {
 
@@ -10,15 +12,22 @@ public class SimulationRender extends JFrame {
     public SimulationRender(int x, int y) {
         super("Game of Life Simulation");
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+
+        scene = new JPanel[x][y];
+
         GridLayout gridLayout = new GridLayout(x, y);
         setLayout(gridLayout);
 
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                scene[i][j] = new JPanel();
+                JPanel panel = new JPanel();
+                panel.setBackground(Color.WHITE);
+                scene[i][j] = panel;
+                Border border = BorderFactory.createLineBorder(Color.GRAY, 1);
+                panel.setBorder(border);
+                add(panel);
             }
         }
-
         int panelWidth = 50;
         int panelHeight = 50;
         int frameWidth = x * panelWidth;
@@ -32,17 +41,23 @@ public class SimulationRender extends JFrame {
 
         setVisible(true);
     }
+
     public void renderNextScene(int[][] state) {
-        // Generate JPanels to fit in grid of size xy and add them to frame
         for (int i = 0; i < state.length; i++) {
             for (int j = 0; j < state[i].length; j++) {
                 scene[i][j].setBackground(state[i][j] == 1 ? Color.BLACK : Color.WHITE);
-                add(scene[i][j]);
             }
         }
         revalidate();
+        repaint();
     }
+
     public void shutdown() {
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException iE) {
+            Thread.currentThread().interrupt();
+        }
         setVisible(false);
         dispose();
     }

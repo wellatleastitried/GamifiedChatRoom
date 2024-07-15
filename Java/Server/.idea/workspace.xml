@@ -13,17 +13,13 @@
       <change beforePath="$PROJECT_DIR$/../Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/out/artifacts/GameOfLifeClient/gameOfLife.jar" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/out/artifacts/GameOfLifeClient/gameOfLife.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/ClientDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/ClientDriver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/Frame/InitialPosition.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/Frame/InitialPosition.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/Frame/SimulationRender.java" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/src/main/java/com/walit/lifeClient/Frame/SimulationRender.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/ClientDriver.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/ClientDriver.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/Frame/InitialPosition.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/Frame/InitialPosition.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/Frame/SimulationRender.class" beforeDir="false" afterPath="$PROJECT_DIR$/../Client/target/classes/com/walit/lifeClient/Frame/SimulationRender.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/artifacts/GameOfLifeServer/gameOfLife.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/GameOfLifeServer/gameOfLife.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerDriver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerDriver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/walit/lifeServer/ServerMessage.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerDriver$ClientHandler.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerDriver$ClientHandler.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerMessage.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/walit/lifeServer/ServerMessage.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

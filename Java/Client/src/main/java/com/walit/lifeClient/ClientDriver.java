@@ -3,9 +3,12 @@ package com.walit.lifeClient;
 import com.walit.lifeClient.Frame.InitialPosition;
 import com.walit.lifeClient.Frame.SimulationRender;
 
+import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -18,11 +21,14 @@ public class ClientDriver implements Runnable {
 
     private String SERVER_SIGNATURE;
 
+    private final Queue<String> serializedFramesToRender = new PriorityQueue<>();
+
     private SimulationRender sim;
     private boolean simIsReady = false;
+    private boolean simSpawned = false;
     private boolean waitForInitialPositionResponse = false;
     private volatile boolean simulationRunning = false;
-    private boolean KILL_SIM = false;
+    private boolean firstFrameRendered = false;
 
     private int xSize = 0;
     private int ySize = 0;
@@ -54,14 +60,20 @@ public class ClientDriver implements Runnable {
             thread.start();
             String inputChat;
             while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
-                if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
-                    KILL_SIM = true;
+                if (inputChat.matches("^[" + SERVER_SIGNATURE + "][0-1]") && !firstFrameRendered) {
+                    System.out.println("AQUI");
+                    serializedFramesToRender.add(inputChat.substring(SERVER_SIGNATURE.length()));
+                } else if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
+                    simulationRunning = false;
+                    SwingUtilities.invokeLater(() -> sim.shutdown());
+                    simSpawned = false;
+                    firstFrameRendered = false;
                 }
                 if (waitForInitialPositionResponse && inputChat.startsWith(SERVER_SIGNATURE + ":SIZE:")) {
                     handleSizeMessage(inputChat.substring(70));
                     waitForInitialPositionResponse = false;
                 } else if (simIsReady) {
-                    assert(!simulationRunning);
+                    String finalInputChat = inputChat;
                     switch (inputChat) {
                         case "Checking configuration...",
                              "You did not set a starting position. It will be randomly generated for you." ->
@@ -70,9 +82,13 @@ public class ClientDriver implements Runnable {
                              "[!] Simulation cannot start because you never set the server signature." ->
                                 simIsReady = false;
                         default -> {
-                            sim = new SimulationRender(xSize, ySize);
+                            if (!simSpawned) {
+                                SwingUtilities.invokeAndWait(() -> sim = new SimulationRender(xSize, ySize));
+                                simSpawned = true;
+                            }
                             if (inputChat.startsWith(SERVER_SIGNATURE)) {
-                                sim.renderNextScene(deserializeStateFromServer(inputChat));
+                                SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(finalInputChat.substring(SERVER_SIGNATURE.length()))));
+                                firstFrameRendered = true;
                             } else {
                                 continue;
                             }
@@ -85,24 +101,15 @@ public class ClientDriver implements Runnable {
                                     Thread.currentThread().interrupt();
                                 }
                                 simulationRunning = true;
-                                System.out.println("Completable Future finished.");
                             });
                         }
                     }
                 } else if (simulationRunning) {
-                    if (inputChat.matches("^" + SERVER_SIGNATURE + "[0-1]")) {
-                        System.out.println(inputChat);
-                        int[][] state = deserializeStateFromServer(inputChat);
-                        sim.renderNextScene(state);
-                        if (KILL_SIM) {
-                            simulationRunning = false;
-                            KILL_SIM = false;
-                            sim.shutdown();
-                        }
-                    } else if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
-                        KILL_SIM = true;
+                    if (!serializedFramesToRender.isEmpty()) {
+                        int[][] state = deserializeStateFromServer(serializedFramesToRender.remove());
+                        SwingUtilities.invokeLater(() -> sim.renderNextScene(state));
                     } else {
-                        System.out.println(inputChat);
+                        System.out.println("State: " + inputChat);
                     }
                 } else {
                     System.out.println(inputChat);
