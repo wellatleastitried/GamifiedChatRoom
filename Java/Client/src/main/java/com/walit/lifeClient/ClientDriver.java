@@ -36,7 +36,7 @@ public class ClientDriver implements Runnable {
     public ClientDriver() {
         KEEP_ALIVE = true;
     }
-    public void shutdown() {
+    public int shutdown() {
         KEEP_ALIVE = false;
         try {
             inbound.close();
@@ -46,7 +46,9 @@ public class ClientDriver implements Runnable {
             }
         } catch (Exception e) {
             System.err.println("Unable to connect to server.");
+            return 1;
         }
+        return 0;
     }
 
     @Override
@@ -60,19 +62,20 @@ public class ClientDriver implements Runnable {
             thread.start();
             String inputChat;
             while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
-                if (inputChat.matches("^[" + SERVER_SIGNATURE + "][0-1]") && !firstFrameRendered) {
-                    System.out.println("AQUI");
-                    serializedFramesToRender.add(inputChat.substring(SERVER_SIGNATURE.length()));
-                } else if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
-                    simulationRunning = false;
-                    SwingUtilities.invokeLater(() -> sim.shutdown());
-                    simSpawned = false;
-                    firstFrameRendered = false;
+                if (SERVER_SIGNATURE != null && inputChat.startsWith(SERVER_SIGNATURE)) {
+                    if (inputChat.substring(SERVER_SIGNATURE.length()).startsWith("0") || inputChat.substring(SERVER_SIGNATURE.length()).startsWith("1") && firstFrameRendered) {
+                        serializedFramesToRender.add(inputChat.substring(SERVER_SIGNATURE.length()));
+                    } else if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
+                        simulationRunning = false;
+                        SwingUtilities.invokeLater(() -> sim.shutdown());
+                        simSpawned = false;
+                        firstFrameRendered = false;
+                    } else if (inputChat.startsWith(SERVER_SIGNATURE + ":SIZE:")) {
+                        handleSizeMessage(inputChat.substring(70));
+                        waitForInitialPositionResponse = false;
+                    }
                 }
-                if (waitForInitialPositionResponse && inputChat.startsWith(SERVER_SIGNATURE + ":SIZE:")) {
-                    handleSizeMessage(inputChat.substring(70));
-                    waitForInitialPositionResponse = false;
-                } else if (simIsReady) {
+                if (simIsReady) {
                     String finalInputChat = inputChat;
                     switch (inputChat) {
                         case "Checking configuration...",
@@ -109,7 +112,7 @@ public class ClientDriver implements Runnable {
                         int[][] state = deserializeStateFromServer(serializedFramesToRender.remove());
                         SwingUtilities.invokeLater(() -> sim.renderNextScene(state));
                     } else {
-                        System.out.println("State: " + inputChat);
+                        System.err.println("Queue has no more frames to render.");
                     }
                 } else {
                     System.out.println(inputChat);
@@ -138,6 +141,9 @@ public class ClientDriver implements Runnable {
             assert(!waitForInitialPositionResponse);
             waitForInitialPositionResponse = true;
         } else if (cmd.equalsIgnoreCase("&start sim")) {
+            if (SERVER_SIGNATURE == null) {
+                return;
+            }
             if (simulationRunning) {
                 System.out.println("Simulation is already running.");
             } else if (simIsReady) {
@@ -150,7 +156,9 @@ public class ClientDriver implements Runnable {
                 try {
                     xSize = Integer.parseInt(dataFromCmd[2]);
                     ySize = Integer.parseInt(dataFromCmd[3]);
-                } catch (NumberFormatException nFE) {}
+                } catch (NumberFormatException nFE) {
+                    System.err.println("NumberFormatException in sendAndHandleCommand()");
+                }
             }
         } else if (cmd.startsWith("&set server signature")) {
             String[] partsOfSigCmd = cmd.trim().split(" ");

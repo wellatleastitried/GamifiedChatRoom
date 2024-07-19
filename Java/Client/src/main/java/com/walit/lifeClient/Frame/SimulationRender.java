@@ -28,6 +28,7 @@ public class SimulationRender extends JFrame {
                 add(panel);
             }
         }
+
         int panelWidth = 50;
         int panelHeight = 50;
         int frameWidth = x * panelWidth;

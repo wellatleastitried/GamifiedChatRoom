@@ -24,9 +24,9 @@ public class ServerDriver {
     public static void main(String[] args) {
         Scanner s = new Scanner(System.in);
         ServerDriver sD = null;
-        System.out.println("How many people do you expect to connect to this server? (Enter a number OR enter \"no\" if you are unsure):");
+        System.out.println("How many people do you expect to connect to this server? (Enter a number OR enter \"unknown\" if you are unsure):");
         String expectedConnections = s.nextLine();
-        if (expectedConnections.equalsIgnoreCase("no")) {
+        if (expectedConnections.equalsIgnoreCase("unknown")) {
             System.out.println(ServerMessage.ServerCachedThreads.getMessage());
             sD = new ServerDriver();
         } else {
@@ -42,8 +42,9 @@ public class ServerDriver {
         if (sD.runServer() == 0) {
             System.out.println("Server has successfully terminated.");
         } else {
-            System.err.println("Server had an error.");
+            System.err.println("Server terminated due to an error.");
         }
+        s.close();
     }
 
     public ServerDriver() {
@@ -65,7 +66,6 @@ public class ServerDriver {
             System.out.println(ServerMessage.ServerCreated.getMessage());
             System.out.println(ServerMessage.ServerWait.getMessage());
             while (KEEP_ALIVE) {
-                // Accept connections and allocate a thread from the thread pool to them
                 Socket clientSocket = server.accept();
                 System.out.println(ServerMessage.ServerClientConnect.getMessage());
                 ClientHandler client = new ClientHandler(clientSocket);
@@ -84,13 +84,15 @@ public class ServerDriver {
         return 0;
     }
 
-    private void checkConcurrentUsers(int userCount) {
+    protected boolean checkConcurrentUsers(int userCount) {
         if (userCount >= 1000) {
             // TODO: Send me a text or email so that I know that I need to host this on a better server
+            return true;
         }
+        return false;
     }
 
-    private void shutdown() {
+    protected void shutdown() {
         KEEP_ALIVE = false;
         threadPool.shutdown();
         for (ClientHandler c : connections) {
@@ -98,7 +100,7 @@ public class ServerDriver {
         }
     }
 
-    private void messageAllClients(String message) {
+    protected void messageAllClients(String message) {
         for (ClientHandler c : connections) {
             if (c != null) {
                 c.messageClient(message);
@@ -106,7 +108,7 @@ public class ServerDriver {
         }
     }
 
-    private String getUniqueSignature(String ipAddress, String name) {
+    protected String getUniqueSignature(String ipAddress, String name) {
         try {
             long currentTimeMillis = Instant.now().toEpochMilli();
             String uniqueIdentifier = name + ":" + ipAddress + ":" + currentTimeMillis;
@@ -192,7 +194,8 @@ public class ServerDriver {
                 } catch (InterruptedException iE) {
                     Thread.currentThread().interrupt();
                 }
-                outbound.println(connectionSignature + serializeFrame(nextState));
+                String frame = connectionSignature + serializeFrame(nextState);
+                outbound.println(frame);
                 previousState = nextState;
                 nextState = generateNextFrame(previousState);
             }
@@ -200,11 +203,11 @@ public class ServerDriver {
             return 1;
         }
 
-        private int convertSpeedToTickRate(int speed) {
+        protected int convertSpeedToTickRate(int speed) {
             return 1000 / speedToFPS.get(speed);
         }
 
-        private int countNeighbors(int[][] frame, int x, int y) {
+        protected int countNeighbors(int[][] frame, int x, int y) {
             int count = 0;
             for (int[] neighbor : neighbors) {
                 int row = x + neighbor[0];
@@ -222,7 +225,7 @@ public class ServerDriver {
             return count;
         }
 
-        private int[][] generateNextFrame(int[][] lastFrame) {
+        protected int[][] generateNextFrame(int[][] lastFrame) {
             newFrameIsDifferent = true;
             int count = 0;
             /*
@@ -254,7 +257,7 @@ public class ServerDriver {
             return result;
         }
 
-        private String serializeFrame(int[][] frame) {
+        protected String serializeFrame(int[][] frame) {
             StringBuilder builder = new StringBuilder();
             for (int[] row : frame) {
                 builder.append(Arrays.toString(row).replaceAll("[\\[\\]\\s]", "")).append(";");
@@ -262,7 +265,7 @@ public class ServerDriver {
             return builder.toString();
         }
 
-        private int[][] getRandomlyGeneratedPosition() {
+        protected int[][] getRandomlyGeneratedPosition() {
             int[][] position = new int[ySize][xSize];
             for (int i = 0; i < position.length; i++) {
                 for (int j = 0; j < position[i].length; j++) {
@@ -272,7 +275,7 @@ public class ServerDriver {
             return position;
         }
 
-        private int getRandomDigit() {
+        protected int getRandomDigit() {
             return new SecureRandom().nextInt(2);
         }
 
@@ -309,6 +312,7 @@ public class ServerDriver {
                         } else if (chat.toLowerCase().startsWith("&help")) {
                             messageClient(getHelpText());
                         } else if (chat.toLowerCase().startsWith("&set speed")) {
+                            // TODO: Put this in handleSettingSpeed(chat)
                             String[] speedCall = chat.split(" ");
                             if (speedCall.length != 3) {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
@@ -326,12 +330,14 @@ public class ServerDriver {
                             }
                             messageClient("Tick speed has been set.");
                         } else if (chat.toLowerCase().startsWith("&get speed")) {
+                            // TODO: Put this in sendSpeedToClient()
                             if (isValidSpeed(SPEED)) {
                                 messageClient("Current set speed is: " + SPEED);
                             } else {
                                 messageClient(ServerMessage.UnsetValue.getMessage());
                             }
                         } else if (chat.toLowerCase().startsWith("&set size")) {
+                            // TODO: Put this in handleSettingSize(chat)
                             String[] sizeValues = chat.split(" ");
                             if (sizeValues.length != 4) {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
@@ -351,12 +357,14 @@ public class ServerDriver {
                                 messageClient(ServerMessage.InvalidCommand.getMessage());
                             }
                         } else if (chat.toLowerCase().startsWith("&get size")) {
+                            // TODO: Put this in sendSizeToClient()
                             if (isValidSize(xSize, ySize)) {
                                 messageClient(String.format("Current size:\nx -> %d\ny -> %d\n", xSize, ySize));
                             } else {
                                 messageClient(ServerMessage.UnsetValue.getMessage());
                             }
                         } else if (chat.toLowerCase().startsWith("&set init pos")) {
+                            // TODO: Put this in handleSettingInitialPosition()
                             if (!isValidSize(xSize, ySize)) {
                                 messageClient("There is not a valid grid size set. Use '&set size x y' to change this.");
                                 continue;
@@ -366,7 +374,8 @@ public class ServerDriver {
                             String initialRes = inbound.readLine();
                             startPosition = deserializeStartBoard(initialRes);
                             messageClient("Initial position of simulation has been set.");
-                        } else if (chat.toLowerCase().startsWith("&start sim")) { // TODO
+                        } else if (chat.toLowerCase().startsWith("&start sim")) { 
+                            // TODO: Put this in handleSimStartCommand()
                             messageClient("Checking configuration...");
                             if (!signatureSet) {
                                 messageClient(ServerMessage.SignatureNotSet.getMessage());
@@ -386,6 +395,7 @@ public class ServerDriver {
                                 messageClient(ServerMessage.SimulationInvalid.getMessage());
                             }
                         } else if (chat.toLowerCase().startsWith("&name")) {
+                            // TODO: Put this in handleNameChange(chat)
                             if (nameChangesRemaining == 0) {
                                 messageClient("You have no name changes remaining.");
                                 continue;
@@ -428,7 +438,7 @@ public class ServerDriver {
             }
         }
 
-        private int[][] deserializeStartBoard(String data) {
+        protected int[][] deserializeStartBoard(String data) {
             int[][] board = new int[ySize][xSize];
             String[] rows = data.split(";");
             for (int i = 0; i < ySize; i++) {

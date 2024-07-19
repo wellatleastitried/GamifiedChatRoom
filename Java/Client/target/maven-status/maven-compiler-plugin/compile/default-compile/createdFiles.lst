@@ -1,0 +1,6 @@
+com/walit/lifeClient/ClientDriver.class
+com/walit/lifeClient/Input.class
+com/walit/lifeClient/Frame/SimulationRender.class
+com/walit/lifeClient/Frame/InitialPosition$1.class
+com/walit/lifeClient/Frame/InitialPosition$ButtonClickListener.class
+com/walit/lifeClient/Frame/InitialPosition.class
