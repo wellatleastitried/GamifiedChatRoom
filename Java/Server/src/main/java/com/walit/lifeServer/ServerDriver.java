@@ -71,7 +71,7 @@ public class ServerDriver {
                 ClientHandler client = new ClientHandler(clientSocket);
                 connections.add(client);
                 threadPool.execute(client);
-                checkConcurrentUsers(connections.size());
+                checkConcurrentUsersIsOverLimit(connections.size());
             }
             messageAllClients(ServerMessage.ServerShutdown.getMessage());
             System.out.println(ServerMessage.ServerShutdown.getMessage());
@@ -84,7 +84,7 @@ public class ServerDriver {
         return 0;
     }
 
-    protected boolean checkConcurrentUsers(int userCount) {
+    protected boolean checkConcurrentUsersIsOverLimit(int userCount) {
         if (userCount >= 1000) {
             // TODO: Send me a text or email so that I know that I need to host this on a better server
             return true;
@@ -139,8 +139,8 @@ public class ServerDriver {
         private int nameChangesRemaining = 2;
 
         private int SPEED = -1;
-        private int xSize = -1;
-        private int ySize = -1;
+        protected int xSize = -1;
+        protected int ySize = -1;
         private int[][] startPosition;
         private final int[][] neighbors = new int[][] {
                 {0, 1},
@@ -167,16 +167,21 @@ public class ServerDriver {
             speedToFPS.put(5, 10);
         }
 
-        private boolean isValidSpeed(int passedSpeed) {
+        protected boolean isValidSpeed(int passedSpeed) {
             return passedSpeed < 6 && passedSpeed > 0;
         }
 
-        private boolean isValidSize(int x, int y) {
-            return x > 5 && x <= 1000 && y < 750 && y > 3;
+        protected boolean isValidSize(int x, int y) {
+            return x > 5 && x <= 75 && y < 75 && y > 5;
         }
 
         private int startSim() {
+
+            int count = 0;
+
             messageClient(ServerMessage.SimulationStarted.getMessage());
+            int repeatedFrames = 0;
+            int tolerance = 20;
             int[][] previousState;
             int[][] nextState;
             int tick = convertSpeedToTickRate(SPEED);
@@ -188,7 +193,7 @@ public class ServerDriver {
             }
             previousState = startPosition;
             nextState = generateNextFrame(previousState);
-            while (newFrameIsDifferent) {
+            while (repeatedFrames < tolerance) {
                 try {
                     TimeUnit.MILLISECONDS.sleep(tick);
                 } catch (InterruptedException iE) {
@@ -198,8 +203,13 @@ public class ServerDriver {
                 outbound.println(frame);
                 previousState = nextState;
                 nextState = generateNextFrame(previousState);
+                count++;
+                if (!newFrameIsDifferent) {
+                    repeatedFrames++;
+                }
             }
-            outbound.println(connectionSignature + " KILL");
+            // outbound.println(connectionSignature + " KILL");
+            System.out.println("Total frames rendered: " + count);
             return 1;
         }
 
@@ -251,9 +261,7 @@ public class ServerDriver {
                     }
                 }
             }
-            if (count == lastFrame.length * lastFrame[0].length) {
-                newFrameIsDifferent = false;
-            }
+            newFrameIsDifferent = count == lastFrame.length * lastFrame[0].length ? false : true;
             return result;
         }
 
@@ -312,115 +320,19 @@ public class ServerDriver {
                         } else if (chat.toLowerCase().startsWith("&help")) {
                             messageClient(getHelpText());
                         } else if (chat.toLowerCase().startsWith("&set speed")) {
-                            // TODO: Put this in handleSettingSpeed(chat)
-                            String[] speedCall = chat.split(" ");
-                            if (speedCall.length != 3) {
-                                messageClient(ServerMessage.InvalidCommand.getMessage());
-                                continue;
-                            }
-                            try {
-                                int tempSpeed = Integer.parseInt(speedCall[2]);
-                                if (!isValidSpeed(tempSpeed)) {
-                                    messageClient(ServerMessage.InvalidCommand.getMessage());
-                                    continue;
-                                }
-                                SPEED = tempSpeed;
-                            } catch (NumberFormatException nFE) {
-                                messageClient(ServerMessage.InvalidCommand.getMessage());
-                            }
-                            messageClient("Tick speed has been set.");
+                            handleSettingSpeed(chat);
                         } else if (chat.toLowerCase().startsWith("&get speed")) {
-                            // TODO: Put this in sendSpeedToClient()
-                            if (isValidSpeed(SPEED)) {
-                                messageClient("Current set speed is: " + SPEED);
-                            } else {
-                                messageClient(ServerMessage.UnsetValue.getMessage());
-                            }
+                            sendSpeedToClient();
                         } else if (chat.toLowerCase().startsWith("&set size")) {
-                            // TODO: Put this in handleSettingSize(chat)
-                            String[] sizeValues = chat.split(" ");
-                            if (sizeValues.length != 4) {
-                                messageClient(ServerMessage.InvalidCommand.getMessage());
-                                continue;
-                            }
-                            try {
-                                int x = Integer.parseInt(sizeValues[2]);
-                                int y = Integer.parseInt(sizeValues[3]);
-                                if (!isValidSize(x, y)) {
-                                    messageClient(ServerMessage.InvalidCommand.getMessage());
-                                    continue;
-                                }
-                                xSize = x;
-                                ySize = y;
-                                messageClient(String.format("Size of grid set to: %dx%d.", xSize, ySize));
-                            } catch (NumberFormatException nFE) {
-                                messageClient(ServerMessage.InvalidCommand.getMessage());
-                            }
+                            handleSettingSize(chat);
                         } else if (chat.toLowerCase().startsWith("&get size")) {
-                            // TODO: Put this in sendSizeToClient()
-                            if (isValidSize(xSize, ySize)) {
-                                messageClient(String.format("Current size:\nx -> %d\ny -> %d\n", xSize, ySize));
-                            } else {
-                                messageClient(ServerMessage.UnsetValue.getMessage());
-                            }
+                            sendSizeToClient();
                         } else if (chat.toLowerCase().startsWith("&set init pos")) {
-                            // TODO: Put this in handleSettingInitialPosition()
-                            if (!isValidSize(xSize, ySize)) {
-                                messageClient("There is not a valid grid size set. Use '&set size x y' to change this.");
-                                continue;
-                            }
-                            String message = String.format("%s:SIZE:%d:%d", connectionSignature, xSize, ySize);
-                            messageClient(message);
-                            String initialRes = inbound.readLine();
-                            startPosition = deserializeStartBoard(initialRes);
-                            messageClient("Initial position of simulation has been set.");
+                            handleSettingInitialPosition();
                         } else if (chat.toLowerCase().startsWith("&start sim")) { 
-                            // TODO: Put this in handleSimStartCommand()
-                            messageClient("Checking configuration...");
-                            if (!signatureSet) {
-                                messageClient(ServerMessage.SignatureNotSet.getMessage());
-                                continue;
-                            }
-                            if (isValidSpeed(SPEED) && isValidSize(xSize, ySize)) {
-                                if (startPosition == null) {
-                                    messageClient("You did not set a starting position. It will be randomly generated for you.");
-                                    startPosition = getRandomlyGeneratedPosition();
-                                }
-                                if (startSim() == 1) {
-                                    messageClient(ServerMessage.SimulationFinished.getMessage());
-                                } else {
-                                    messageClient(ServerMessage.SimulationFailure.getMessage());
-                                }
-                            } else {
-                                messageClient(ServerMessage.SimulationInvalid.getMessage());
-                            }
+                            handleSimStartCommand();
                         } else if (chat.toLowerCase().startsWith("&name")) {
-                            // TODO: Put this in handleNameChange(chat)
-                            if (nameChangesRemaining == 0) {
-                                messageClient("You have no name changes remaining.");
-                                continue;
-                            }
-                            String[] cmdAndName = chat.split(" ", 2);
-                            if (cmdAndName.length != 2) {
-                                messageClient("You did not provide a new name. Type \"&help\" to see the help menu.");
-                                continue;
-                            }
-                            if (cmdAndName[1].equals(name)) {
-                                messageClient("This name is already in use.");
-                                continue;
-                            }
-                            if (cmdAndName[1].startsWith("&")) {
-                                messageClient("Your name cannot start with the command symbol.");
-                                continue;
-                            }
-                            if (cmdAndName[1].length() < 2) {
-                                messageClient("This name is not long enough.");
-                                continue;
-                            }
-                            messageAllClients(String.format("%s has changed their name to %s", name, cmdAndName[1]));
-                            System.out.printf("%s changed their name to %s.%n", name, cmdAndName[1]);
-                            messageClient(String.format("%d name changes remaining.", --nameChangesRemaining));
-                            name = cmdAndName[1];
+                            handleNameChange(chat);
                         } else {
                             messageClient(ServerMessage.InvalidCommand.getMessage());
                         }
@@ -437,6 +349,133 @@ public class ServerDriver {
                 shutdown();
             }
         }
+
+        private void handleNameChange(String chat) {
+            handleNameChange(chat);
+            if (nameChangesRemaining == 0) {
+                messageClient("You have no name changes remaining.");
+                return;
+            }
+            String[] cmdAndName = chat.split(" ", 2);
+            if (cmdAndName.length != 2) {
+                messageClient("You did not provide a new name. Type \"&help\" to see the help menu.");
+                return;
+            }
+            if (cmdAndName[1].equals(name)) {
+                messageClient("This name is already in use.");
+                return;
+            }
+            if (cmdAndName[1].startsWith("&")) {
+                messageClient("Your name cannot start with the command symbol.");
+                return;
+            }
+            if (cmdAndName[1].length() < 2) {
+                messageClient("This name is not long enough.");
+                return;
+            }
+            messageAllClients(String.format("%s has changed their name to %s", name, cmdAndName[1]));
+            System.out.printf("%s changed their name to %s.%n", name, cmdAndName[1]);
+            messageClient(String.format("%d name changes remaining.", --nameChangesRemaining));
+            name = cmdAndName[1];
+        }
+
+        private void handleSimStartCommand() {
+            messageClient("Checking configuration...");
+            if (!signatureSet) {
+                messageClient(ServerMessage.SignatureNotSet.getMessage());
+                return;
+            }
+            if (isValidSpeed(SPEED) && isValidSize(xSize, ySize)) {
+                if (startPosition == null) {
+                    messageClient("You did not set a starting position. It will be randomly generated for you.");
+                    startPosition = getRandomlyGeneratedPosition();
+                }
+                if (startSim() == 1) {
+                    messageClient(ServerMessage.SimulationFinished.getMessage());
+                } else {
+                    messageClient(ServerMessage.SimulationFailure.getMessage());
+                }
+            } else {
+                messageClient(ServerMessage.SimulationInvalid.getMessage());
+            }
+        }
+
+        private void handleSettingInitialPosition() {
+            if (!isValidSize(xSize, ySize)) {
+                messageClient("There is not a valid grid size set. Use '&set size x y' to change this.");
+                return;
+            }
+            String message = String.format("%s:SIZE:%d:%d", connectionSignature, xSize, ySize);
+            messageClient(message);
+            String initialRes = "";
+            try {
+                initialRes = inbound.readLine();
+            } catch (IOException iE) {
+                messageClient("Error: Server could not fetch position.");
+                return;
+            }
+            startPosition = deserializeStartBoard(initialRes);
+            messageClient("Initial position of simulation has been set.");
+
+        }
+
+        private void handleSettingSize(String chat) {
+            String[] sizeValues = chat.split(" ");
+            if (sizeValues.length != 4) {
+                messageClient(ServerMessage.InvalidCommand.getMessage());
+                return;
+            }
+            try {
+                int x = Integer.parseInt(sizeValues[2]);
+                int y = Integer.parseInt(sizeValues[3]);
+                if (!isValidSize(x, y)) {
+                    messageClient(ServerMessage.InvalidCommand.getMessage());
+                    return;
+                }
+                xSize = x;
+                ySize = y;
+                messageClient(String.format("Size of grid set to: %dx%d.", xSize, ySize));
+            } catch (NumberFormatException nFE) {
+                messageClient(ServerMessage.InvalidCommand.getMessage());
+            }
+
+        }
+
+        private void sendSpeedToClient() {
+            if (isValidSpeed(SPEED)) {
+                messageClient("Current set speed is: " + SPEED);
+            } else {
+                messageClient(ServerMessage.UnsetValue.getMessage());
+            }
+        }
+
+        private void sendSizeToClient() {
+            if (isValidSpeed(SPEED)) {
+                messageClient("Current set speed is: " + SPEED);
+            } else {
+                messageClient(ServerMessage.UnsetValue.getMessage());
+            }
+        }
+
+        private void handleSettingSpeed(String chat) {
+            String[] speedCall = chat.split(" ");
+            if (speedCall.length != 3) {
+                messageClient(ServerMessage.InvalidCommand.getMessage());
+                return;
+            }
+            try {
+                int tempSpeed = Integer.parseInt(speedCall[2]);
+                if (!isValidSpeed(tempSpeed)) {
+                    messageClient(ServerMessage.InvalidCommand.getMessage());
+                    return;
+                }
+                SPEED = tempSpeed;
+            } catch (NumberFormatException nFE) {
+                messageClient(ServerMessage.InvalidCommand.getMessage());
+            }
+            messageClient("Tick speed has been set.");
+        }
+
 
         protected int[][] deserializeStartBoard(String data) {
             int[][] board = new int[ySize][xSize];
@@ -461,6 +500,7 @@ public class ServerDriver {
                 helpTxt.append(String.format("&set server signature %s\n\n", connectionSignature));
             }
             helpTxt.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
+            helpTxt.append("                            Size for x and y must be between 5 and 75.\n\n");
             helpTxt.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
             helpTxt.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
             helpTxt.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");

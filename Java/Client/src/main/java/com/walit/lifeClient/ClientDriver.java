@@ -9,6 +9,8 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +24,7 @@ public class ClientDriver implements Runnable {
     private String SERVER_SIGNATURE;
 
     private final Queue<String> serializedFramesToRender = new PriorityQueue<>();
+    private final Map<Long, String> serializedFrames;
 
     private SimulationRender sim;
     private boolean simIsReady = false;
@@ -29,12 +32,17 @@ public class ClientDriver implements Runnable {
     private boolean waitForInitialPositionResponse = false;
     private volatile boolean simulationRunning = false;
     private boolean firstFrameRendered = false;
+    private long totalFramesReceived;
+    private long totalFramesRendered;
 
     private int xSize = 0;
     private int ySize = 0;
 
     public ClientDriver() {
         KEEP_ALIVE = true;
+        serializedFrames = new HashMap<>();
+        totalFramesReceived = 0;
+        totalFramesRendered = 0;
     }
     public int shutdown() {
         KEEP_ALIVE = false;
@@ -64,15 +72,13 @@ public class ClientDriver implements Runnable {
             while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
                 if (SERVER_SIGNATURE != null && inputChat.startsWith(SERVER_SIGNATURE)) {
                     if (inputChat.substring(SERVER_SIGNATURE.length()).startsWith("0") || inputChat.substring(SERVER_SIGNATURE.length()).startsWith("1") && firstFrameRendered) {
-                        serializedFramesToRender.add(inputChat.substring(SERVER_SIGNATURE.length()));
-                    } else if (inputChat.equals(SERVER_SIGNATURE + " KILL")) {
-                        simulationRunning = false;
-                        SwingUtilities.invokeLater(() -> sim.shutdown());
-                        simSpawned = false;
-                        firstFrameRendered = false;
+                        // serializedFramesToRender.add(inputChat.substring(SERVER_SIGNATURE.length()));
+                        totalFramesReceived++;
+                        serializedFrames.put(totalFramesReceived, inputChat.substring(SERVER_SIGNATURE.length()));
                     } else if (inputChat.startsWith(SERVER_SIGNATURE + ":SIZE:")) {
                         handleSizeMessage(inputChat.substring(70));
                         waitForInitialPositionResponse = false;
+                        continue;
                     }
                 }
                 if (simIsReady) {
@@ -92,11 +98,12 @@ public class ClientDriver implements Runnable {
                             if (inputChat.startsWith(SERVER_SIGNATURE)) {
                                 SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(finalInputChat.substring(SERVER_SIGNATURE.length()))));
                                 firstFrameRendered = true;
+                                totalFramesRendered = 1;
                             } else {
                                 continue;
                             }
                             simIsReady = false;
-                            System.out.println("Simulation is starting...");
+                            System.out.println("[*] Simulation is starting...");
                             CompletableFuture.runAsync(() -> {
                                 try {
                                     TimeUnit.SECONDS.sleep(3);
@@ -108,11 +115,19 @@ public class ClientDriver implements Runnable {
                         }
                     }
                 } else if (simulationRunning) {
-                    if (!serializedFramesToRender.isEmpty()) {
-                        int[][] state = deserializeStateFromServer(serializedFramesToRender.remove());
+                    if (serializedFrames.containsKey(totalFramesRendered) && serializedFrames.size() > totalFramesRendered) {
+                        int[][] state = deserializeStateFromServer(serializedFrames.get(totalFramesRendered));
                         SwingUtilities.invokeLater(() -> sim.renderNextScene(state));
+                        totalFramesRendered++;
                     } else {
-                        System.err.println("Queue has no more frames to render.");
+                        System.out.println("[*] Simulation has finished.");
+                        simulationRunning = false;
+                        SwingUtilities.invokeLater(() -> sim.shutdown());
+                        simSpawned = false;
+                        firstFrameRendered = false;
+                        serializedFrames.clear();
+                        totalFramesReceived = 0;
+                        totalFramesRendered = 0;
                     }
                 } else {
                     System.out.println(inputChat);

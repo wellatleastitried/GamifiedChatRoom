@@ -9,7 +9,7 @@ public class SimulationRender extends JFrame {
 
     JPanel[][] scene;
 
-    public SimulationRender(int x, int y) {
+    public SimulationRender(int y, int x) {
         super("Game of Life Simulation");
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
