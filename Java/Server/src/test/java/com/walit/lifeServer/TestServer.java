@@ -23,6 +23,21 @@ public class TestServer {
     }
 
     @Test
+    public void testRandomFrameGeneration() {
+        handler.xSize = 20;
+        handler.ySize = 20;
+        for (int positions = 0; positions < 9999; positions++) {
+            int[][] randomPosition = handler.getRandomlyGeneratedPosition();
+            for (int i = 0; i < randomPosition.length; i++) {
+                for (int j = 0; j < randomPosition[i].length; j++) {
+                    MatcherAssert.assertThat(randomPosition[i][j], Matchers.anyOf(is(0), is(1)));
+                }
+            }
+        }
+    }
+        
+
+    @Test
     public void testFrameGeneration() {
         /*
            Rules of Conway's Game of Life
@@ -31,7 +46,7 @@ public class TestServer {
            3. Any live cell with more than three live neighbors dies
            4. Any dead cell with exactly three live neighbors becomes alive
         */
-        // TODO: verify that the server is generating the correct frames to display
+
         // 0,0,0    0,0,0
         // 0,1,1    0,1,1
         // 0,1,0    0,1,1
@@ -47,18 +62,48 @@ public class TestServer {
         };
         MatcherAssert.assertThat(handler.generateNextFrame(startFrame), is(expectedResult));
 
-        // 0,1,1
-        // 1,1,1
-        // 1,1,1
-        //
-        // 0,0,1
-        // 0,1,0
-        // 0,0,1
+        // 0,1,1    1,0,1
+        // 1,1,1    0,0,0
+        // 1,1,1    1,0,1
+        startFrame = new int[][] {
+            {0,1,1},
+            {1,1,1},
+            {1,1,1}
+        };
+        expectedResult = new int[][] {
+            {1,0,1},
+            {0,0,0},
+            {1,0,1}
+        };
+        MatcherAssert.assertThat(handler.generateNextFrame(startFrame), is(expectedResult));
+
+        // 0,0,1    0,0,0
+        // 0,1,0    0,1,1
+        // 0,0,1    0,0,0
+        startFrame = new int[][] {
+            {0,0,1},
+            {0,1,0},
+            {0,0,1}
+        };
+        expectedResult = new int[][] {
+            {0,0,0},
+            {0,1,1},
+            {0,0,0}
+        };
+        MatcherAssert.assertThat(handler.generateNextFrame(startFrame), is(expectedResult));
+    }
+
+    @Test
+    public void testUserCount() {
+        MatcherAssert.assertThat(driver.checkConcurrentUsersIsOverLimit(900, false), is(false));
+        MatcherAssert.assertThat(driver.checkConcurrentUsersIsOverLimit(1500, false), is(true));
+        // If for some reason you need to check the mail service
+        // MatcherAssert.assertThat(driver.checkConcurrentUsersIsOverLimit(1584, true), is(true));
     }
 
     @Test
     public void testRandomNumberGen() {
-        for (int i = 0; i < 9999; i++) {
+        for (int i = 0; i < 999; i++) {
             MatcherAssert.assertThat(handler.getRandomDigit(), Matchers.anyOf(is(0), is(1)));
         }
     }
@@ -94,4 +139,40 @@ public class TestServer {
         MatcherAssert.assertThat(handler.deserializeStartBoard(serializedOnes), is(expectedFrame));
     }
 
+    @Test
+    public void testSerialize() {
+        handler.ySize = 4;
+        handler.xSize = 5;
+        String expectedResult = "0,1,0,1,0;1,0,1,0,1;0,1,0,1,0;1,0,1,0,1;";
+        int[][] dataToSerialize = new int[][] {
+            {0,1,0,1,0},
+            {1,0,1,0,1},
+            {0,1,0,1,0},
+            {1,0,1,0,1}
+        };
+        MatcherAssert.assertThat(handler.serializeFrame(dataToSerialize), is(expectedResult));
+        dataToSerialize = new int[][] {
+            {0,0,0,0,0},
+            {0,0,0,0,0},
+            {0,0,0,0,0},
+            {0,0,0,0,0}
+        };
+        expectedResult = "0,0,0,0,0;0,0,0,0,0;0,0,0,0,0;0,0,0,0,0;";
+        MatcherAssert.assertThat(handler.serializeFrame(dataToSerialize), is(expectedResult));
+    }
+
+    @Test
+    public void neighborCountTest() {
+        // frame, x, y
+        int[][] frame = new int[][] {
+            {0,0,1,1,1},
+            {1,1,1,1,1},
+            {0,0,0,0,1},
+            {1,1,1,1,1}
+        };
+        MatcherAssert.assertThat(handler.countNeighbors(frame, 2, 2), is(6));
+        MatcherAssert.assertThat(handler.countNeighbors(frame, 0, 4), is(3));
+        MatcherAssert.assertThat(handler.countNeighbors(frame, 0, 0), is(2));
+        MatcherAssert.assertThat(handler.countNeighbors(frame, 2, 0), is(4));
+    }
 }

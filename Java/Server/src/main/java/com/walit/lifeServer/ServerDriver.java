@@ -1,5 +1,12 @@
 package com.walit.lifeServer;
 
+import jakarta.mail.internet.*;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.Transport;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import java.util.Properties;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -73,7 +80,7 @@ public class ServerDriver {
                 ClientHandler client = new ClientHandler(clientSocket);
                 connections.add(client);
                 threadPool.execute(client);
-                checkConcurrentUsersIsOverLimit(connections.size());
+                checkConcurrentUsersIsOverLimit(connections.size(), true);
             }
             messageAllClients(ServerMessage.ServerShutdown.getMessage());
             System.out.println(ServerMessage.ServerShutdown.getMessage());
@@ -86,9 +93,35 @@ public class ServerDriver {
         return 0;
     }
 
-    protected boolean checkConcurrentUsersIsOverLimit(int userCount) {
+    protected boolean checkConcurrentUsersIsOverLimit(int userCount, boolean sendWarning) {
         if (userCount >= 1000) {
-            // TODO: Send me a text or email so that I know that I need to host this on a better server
+            if (sendWarning) {
+                String email = System.getenv("GMAIL_ADDR");
+                String token = System.getenv("conwaysGOLKey");
+                String host = "smtp.gmail.com";
+                Properties properties = System.getProperties();
+                properties.put("mail.smtp.host", host);
+                properties.put("mail.smtp.port", "587");
+                properties.put("mail.smtp.auth", "true");
+                properties.put("mail.smtp.starttls.enable", "true");
+                Session session = Session.getInstance(properties, new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(email, token);
+                    }
+                });
+                try {
+                    MimeMessage message = new MimeMessage(session);
+                    message.setFrom(new InternetAddress(email));
+                    message.addRecipient(Message.RecipientType.TO, new InternetAddress(email));
+                    message.setSubject("High server load");
+                    message.setText(String.format("The number of concurrent users has reached %d on your server.", userCount));
+                    Transport.send(message);
+                    System.out.println("Server load warning has been sent.");
+                } catch (Exception mex) {
+                    System.out.println(ServerMessage.EmailFailure.getMessage());
+                }
+            }
             return true;
         }
         return false;
@@ -184,7 +217,7 @@ public class ServerDriver {
             int count = 0;
 
             messageClient(ServerMessage.SimulationStarted.getMessage());
-            int repeatedFrames = 0;
+            int itersOverOnlyZeroes = 0;
             int tolerance = 20;
             int[][] previousState;
             int[][] nextState;
@@ -197,7 +230,7 @@ public class ServerDriver {
             }
             previousState = startPosition;
             nextState = generateNextFrame(previousState);
-            while (repeatedFrames < tolerance) {
+            while (itersOverOnlyZeroes < tolerance) {
                 if (KEEP_SIM_ALIVE.get() == false) {
                     return 0;
                 }
@@ -212,7 +245,7 @@ public class ServerDriver {
                 nextState = generateNextFrame(previousState);
                 count++;
                 if (!newFrameIsZeroes) {
-                    repeatedFrames++;
+                    itersOverOnlyZeroes++;
                 }
             }
             System.out.println("Total frames rendered for " + name + ": " + count);
@@ -254,7 +287,7 @@ public class ServerDriver {
             int[][] result = new int[lastFrame.length][lastFrame[0].length];
             for (int i = 0; i < lastFrame.length; i++) {
                 for (int j = 0; j < lastFrame[i].length; j++) {
-                    int neighbors = countNeighbors(lastFrame, j, i);
+                    int neighbors = countNeighbors(lastFrame, i, j);
                     if (lastFrame[i][j] == 1 && neighbors > 3) {
                         result[i][j] = 0;
                         count++;
@@ -415,13 +448,6 @@ public class ServerDriver {
                         messageClient(ServerMessage.SimulationFailure.getMessage());
                     }
                 });
-                /*
-                   if (startSim() == 1) {
-                    messageClient(ServerMessage.SimulationFinished.getMessage());
-                } else {
-                    messageClient(ServerMessage.SimulationFailure.getMessage());
-                }
-                */
             } else {
                 messageClient(ServerMessage.SimulationInvalid.getMessage());
             }

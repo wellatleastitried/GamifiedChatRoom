@@ -20,6 +20,7 @@ public enum ServerMessage {
         NullException("Null pointer exception encountered, closing client connection."),
         ServerCachedThreads("[*] Starting server with cached thread pool."),
         ServerFixedThreads("[*] Starting server with fixed thread pool of size: "),
+        EmailFailure("[!] There has been an error while sending an email regarding the number of concurrent users."),
         UnsetValue("[*] This value has not been set. Use 'help' to find the proper command to set this value.");
 
         private final String message;
