@@ -10,10 +10,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerDriver {
 
@@ -152,8 +154,9 @@ public class ServerDriver {
                 {-1, 0},
                 {-1, 1}
         };
-        private boolean newFrameIsDifferent = true;
+        private boolean newFrameIsZeroes = false;
         private final Map<Integer, Integer> speedToFPS = new HashMap<>();
+        private AtomicBoolean KEEP_SIM_ALIVE;
 
         private boolean signatureSet = false;
         private String connectionSignature;
@@ -165,6 +168,7 @@ public class ServerDriver {
             speedToFPS.put(3, 5);
             speedToFPS.put(4, 7);
             speedToFPS.put(5, 10);
+            KEEP_SIM_ALIVE = new AtomicBoolean(false);
         }
 
         protected boolean isValidSpeed(int passedSpeed) {
@@ -194,6 +198,9 @@ public class ServerDriver {
             previousState = startPosition;
             nextState = generateNextFrame(previousState);
             while (repeatedFrames < tolerance) {
+                if (KEEP_SIM_ALIVE.get() == false) {
+                    return 0;
+                }
                 try {
                     TimeUnit.MILLISECONDS.sleep(tick);
                 } catch (InterruptedException iE) {
@@ -204,12 +211,11 @@ public class ServerDriver {
                 previousState = nextState;
                 nextState = generateNextFrame(previousState);
                 count++;
-                if (!newFrameIsDifferent) {
+                if (!newFrameIsZeroes) {
                     repeatedFrames++;
                 }
             }
-            // outbound.println(connectionSignature + " KILL");
-            System.out.println("Total frames rendered: " + count);
+            System.out.println("Total frames rendered for " + name + ": " + count);
             return 1;
         }
 
@@ -236,7 +242,7 @@ public class ServerDriver {
         }
 
         protected int[][] generateNextFrame(int[][] lastFrame) {
-            newFrameIsDifferent = true;
+            newFrameIsZeroes = false;
             int count = 0;
             /*
             Rules of Conway's Game of Life
@@ -244,24 +250,23 @@ public class ServerDriver {
             2. Any live cell with two or three live neighbors lives
             3. Any live cell with more than three live neighbors dies
             4. Any dead cell with exactly three live neighbors becomes alive
-             */
+            */
             int[][] result = new int[lastFrame.length][lastFrame[0].length];
             for (int i = 0; i < lastFrame.length; i++) {
                 for (int j = 0; j < lastFrame[i].length; j++) {
                     int neighbors = countNeighbors(lastFrame, j, i);
                     if (lastFrame[i][j] == 1 && neighbors > 3) {
                         result[i][j] = 0;
+                        count++;
                     } else if ((lastFrame[i][j] == 1 && neighbors >= 2) || (lastFrame[i][j] == 0 && neighbors == 3)) {
                         result[i][j] = 1;
                     } else {
                         result[i][j] = 0;
-                    }
-                    if (result[i][j] == lastFrame[i][j]) {
                         count++;
                     }
                 }
             }
-            newFrameIsDifferent = count == lastFrame.length * lastFrame[0].length ? false : true;
+            newFrameIsZeroes = count == lastFrame.length * lastFrame[0].length ? true : false;
             return result;
         }
 
@@ -314,30 +319,38 @@ public class ServerDriver {
                             messageAllClients(name + " left the server.");
                             System.out.println("[*] " + name + ServerMessage.ServerClientDC.getMessage());
                             shutdown();
-                        } else if (chat.contains(connectionSignature)) {
+                        } else if (chat.equals("&set server signature " + connectionSignature) && !signatureSet) {
                             signatureSet = true;
                             messageClient(ServerMessage.SignatureSet.getMessage());
-                        } else if (chat.toLowerCase().startsWith("&help")) {
+                        } else if (chat.equals("&help")) {
                             messageClient(getHelpText());
                         } else if (chat.toLowerCase().startsWith("&set speed")) {
                             handleSettingSpeed(chat);
-                        } else if (chat.toLowerCase().startsWith("&get speed")) {
+                        } else if (chat.equals("&get speed")) {
                             sendSpeedToClient();
                         } else if (chat.toLowerCase().startsWith("&set size")) {
                             handleSettingSize(chat);
-                        } else if (chat.toLowerCase().startsWith("&get size")) {
+                        } else if (chat.equals("&get size")) {
                             sendSizeToClient();
                         } else if (chat.toLowerCase().startsWith("&set init pos")) {
                             handleSettingInitialPosition();
-                        } else if (chat.toLowerCase().startsWith("&start sim")) { 
+                        } else if (chat.equals("&start sim")) { 
                             handleSimStartCommand();
                         } else if (chat.toLowerCase().startsWith("&name")) {
                             handleNameChange(chat);
+                        } else if (chat.equals("&end sim")) {
+                            if (KEEP_SIM_ALIVE.get() == true) {
+                                KEEP_SIM_ALIVE.set(false);
+                            }
                         } else {
                             messageClient(ServerMessage.InvalidCommand.getMessage());
                         }
                     } else {
-                        messageAllClients(ServerMessage.getSyntax(name) + chat);
+                        if (!chat.contains(connectionSignature)) {
+                            messageAllClients(ServerMessage.getSyntax(name) + chat);
+                        } else {
+                            messageClient(ServerMessage.SignatureInMessageError.getMessage());
+                        }
                     }
                 }
             } catch (IOException iE) {
@@ -390,11 +403,25 @@ public class ServerDriver {
                     messageClient("You did not set a starting position. It will be randomly generated for you.");
                     startPosition = getRandomlyGeneratedPosition();
                 }
-                if (startSim() == 1) {
+                KEEP_SIM_ALIVE.set(true);
+                CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
+                    int result = startSim();
+                    return result;
+                });
+                future.thenAccept(result -> {
+                    if (result == 1) {
+                        messageClient(ServerMessage.SimulationFinished.getMessage());
+                    } else {
+                        messageClient(ServerMessage.SimulationFailure.getMessage());
+                    }
+                });
+                /*
+                   if (startSim() == 1) {
                     messageClient(ServerMessage.SimulationFinished.getMessage());
                 } else {
                     messageClient(ServerMessage.SimulationFailure.getMessage());
                 }
+                */
             } else {
                 messageClient(ServerMessage.SimulationInvalid.getMessage());
             }

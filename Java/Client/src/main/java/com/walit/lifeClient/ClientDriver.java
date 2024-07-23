@@ -7,8 +7,6 @@ import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -23,7 +21,6 @@ public class ClientDriver implements Runnable {
 
     private String SERVER_SIGNATURE;
 
-    private final Queue<String> serializedFramesToRender = new PriorityQueue<>();
     private final Map<Long, String> serializedFrames;
 
     private SimulationRender sim;
@@ -72,7 +69,6 @@ public class ClientDriver implements Runnable {
             while ((inputChat = inbound.readLine()) != null && KEEP_ALIVE) {
                 if (SERVER_SIGNATURE != null && inputChat.startsWith(SERVER_SIGNATURE)) {
                     if (inputChat.substring(SERVER_SIGNATURE.length()).startsWith("0") || inputChat.substring(SERVER_SIGNATURE.length()).startsWith("1") && firstFrameRendered) {
-                        // serializedFramesToRender.add(inputChat.substring(SERVER_SIGNATURE.length()));
                         totalFramesReceived++;
                         serializedFrames.put(totalFramesReceived, inputChat.substring(SERVER_SIGNATURE.length()));
                     } else if (inputChat.startsWith(SERVER_SIGNATURE + ":SIZE:")) {
@@ -96,9 +92,9 @@ public class ClientDriver implements Runnable {
                                 simSpawned = true;
                             }
                             if (inputChat.startsWith(SERVER_SIGNATURE)) {
-                                SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(finalInputChat.substring(SERVER_SIGNATURE.length()))));
-                                firstFrameRendered = true;
                                 totalFramesRendered = 1;
+                                SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(finalInputChat.substring(SERVER_SIGNATURE.length())), totalFramesRendered));
+                                firstFrameRendered = true;
                             } else {
                                 continue;
                             }
@@ -117,8 +113,8 @@ public class ClientDriver implements Runnable {
                 } else if (simulationRunning) {
                     if (serializedFrames.containsKey(totalFramesRendered) && serializedFrames.size() > totalFramesRendered) {
                         int[][] state = deserializeStateFromServer(serializedFrames.get(totalFramesRendered));
-                        SwingUtilities.invokeLater(() -> sim.renderNextScene(state));
                         totalFramesRendered++;
+                        SwingUtilities.invokeLater(() -> sim.renderNextScene(state, totalFramesRendered));
                     } else {
                         System.out.println("[*] Simulation has finished.");
                         simulationRunning = false;
@@ -165,6 +161,11 @@ public class ClientDriver implements Runnable {
                 System.out.println("Simulation is being setup.");
             }
             simIsReady = true;
+        } else if (cmd.toLowerCase().startsWith("&end sim")) {
+            if (!simulationRunning) {
+               System.out.println("[*] This command can only be used when the simulation is running.");
+               return;
+            }
         } else if (cmd.toLowerCase().startsWith("&set size")) {
             String[] dataFromCmd = cmd.split(" ");
             if (dataFromCmd.length == 4) {
@@ -179,6 +180,7 @@ public class ClientDriver implements Runnable {
             String[] partsOfSigCmd = cmd.trim().split(" ");
             if (SERVER_SIGNATURE != null) {
                 System.out.println("The signature has already been set.");
+                return;
             }
             if (!(SERVER_SIGNATURE == null && partsOfSigCmd.length == 4 && partsOfSigCmd[3].length() == 64)) {
                 System.out.println("You have not copied the command correctly, it must be the exact command that you see in the terminal.");
@@ -188,6 +190,7 @@ public class ClientDriver implements Runnable {
         }
         outbound.println(cmd);
     }
+
     private void handleSizeMessage(String input) {
         String[] strSize = input.split(":");
         int x = 0;
@@ -206,6 +209,7 @@ public class ClientDriver implements Runnable {
         int[][] initFrame = frame.getFinalCustomPosition();
         outbound.println(serializeIntArray(initFrame));
     }
+
     private String serializeIntArray(int[][] array) {
         StringBuilder sB = new StringBuilder();
         for (int[] row : array) {
@@ -213,6 +217,7 @@ public class ClientDriver implements Runnable {
         }
         return sB.toString();
     }
+
     public static void main(String[] args) {
         ClientDriver client = new ClientDriver();
         client.run();

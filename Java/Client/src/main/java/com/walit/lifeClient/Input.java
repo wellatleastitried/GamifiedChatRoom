@@ -26,6 +26,8 @@ public class Input implements Runnable {
                     clientDriver.sendAndHandleCommand(chat);
                 } else if (chat.startsWith("&set server signature")) {
                     clientDriver.sendAndHandleCommand(chat);
+                } else if (chat.startsWith("&end sim")) {
+                    clientDriver.sendAndHandleCommand(chat);
                 } else {
                     clientDriver.outbound.println(chat);
                 }

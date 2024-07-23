@@ -10,7 +10,7 @@ public class SimulationRender extends JFrame {
     JPanel[][] scene;
 
     public SimulationRender(int y, int x) {
-        super("Game of Life Simulation");
+        super("Conway's Game of Life");
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
         scene = new JPanel[x][y];
@@ -43,12 +43,13 @@ public class SimulationRender extends JFrame {
         setVisible(true);
     }
 
-    public void renderNextScene(int[][] state) {
+    public void renderNextScene(int[][] state, long frameNumber) {
         for (int i = 0; i < state.length; i++) {
             for (int j = 0; j < state[i].length; j++) {
                 scene[i][j].setBackground(state[i][j] == 1 ? Color.BLACK : Color.WHITE);
             }
         }
+        setTitle(String.format("Conway's Game of life - Frame: %d", frameNumber));
         revalidate();
         repaint();
     }

@@ -6,6 +6,7 @@ public enum ServerMessage {
         FailedSignatureGeneration("[!] The SHA-256 algorithm was not able to be loaded, resulting in an error while generating the signature."),
         SignatureSet("[*] You have properly initialized the server signature."),
         SignatureNotSet("[!] You never initialized the verification signature. Scroll up to find the command to send or reconnect."),
+        SignatureInMessageError("[!] Do not send messages with your server signature attached."),
         ServerError("[!] The server received an error:\n"),
         ServerShutdown("[*] The server is shutting down."),
         ServerWait("[*] Waiting for connections...\n"),
