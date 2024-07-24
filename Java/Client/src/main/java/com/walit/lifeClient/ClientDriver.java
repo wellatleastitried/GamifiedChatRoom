@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,16 +28,18 @@ public class ClientDriver implements Runnable {
     private boolean simSpawned = false;
     private boolean waitForInitialPositionResponse = false;
     private volatile boolean simulationRunning = false;
+    private volatile boolean go = false;
     private boolean firstFrameRendered = false;
     private long totalFramesReceived;
     private long totalFramesRendered;
 
     private int xSize = 0;
     private int ySize = 0;
+    private int tick = 0;
 
     public ClientDriver() {
         KEEP_ALIVE = true;
-        serializedFrames = new HashMap<>();
+        serializedFrames = new ConcurrentHashMap<>();
         totalFramesReceived = 0;
         totalFramesRendered = 0;
     }
@@ -76,6 +78,8 @@ public class ClientDriver implements Runnable {
                         waitForInitialPositionResponse = false;
                         continue;
                     }
+                } else {
+                    System.out.println(inputChat);
                 }
                 if (simIsReady) {
                     String finalInputChat = inputChat;
@@ -92,25 +96,39 @@ public class ClientDriver implements Runnable {
                                 simSpawned = true;
                             }
                             if (inputChat.startsWith(SERVER_SIGNATURE)) {
+                                // SERVER_SIGNATURE:tick:5:frame:
+                                String[] tokens = inputChat.split(":");
+                                try {
+                                    tick = Integer.parseInt(tokens[2]);
+                                    //tick = Integer.parseInt(inputChat.substring(SERVER_SIGNATURE.length(), inputChat.indexOf(":frame")));
+                                } catch (NumberFormatException ex) {
+                                    System.out.println("There has been a fatal error.");
+                                    System.exit(1);
+                                }
                                 totalFramesRendered = 1;
-                                SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(finalInputChat.substring(SERVER_SIGNATURE.length())), totalFramesRendered));
+                                SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(tokens[4]), totalFramesRendered));
+                                //SwingUtilities.invokeLater(() -> sim.renderNextScene(deserializeStateFromServer(finalInputChat.substring(finalInputChat.indexOf(":frame") + 6)), totalFramesRendered));
                                 firstFrameRendered = true;
                             } else {
                                 continue;
                             }
-                            simIsReady = false;
-                            System.out.println("[*] Simulation is starting...");
-                            CompletableFuture.runAsync(() -> {
-                                try {
-                                    TimeUnit.SECONDS.sleep(3);
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                }
-                                simulationRunning = true;
-                            });
+                            if (firstFrameRendered && tick != 0) {
+                                simIsReady = false;
+                                System.out.println("[*] Simulation is starting...");
+                                CompletableFuture.runAsync(() -> {
+                                    try {
+                                        TimeUnit.SECONDS.sleep(3);
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                    }
+                                    simulationRunning = true;
+                                });
+                            }
                         }
                     }
-                } else if (simulationRunning) {
+                } else if (simulationRunning && !go) {
+                    go = true;
+                    /*
                     if (serializedFrames.containsKey(totalFramesRendered) && serializedFrames.size() > totalFramesRendered) {
                         int[][] state = deserializeStateFromServer(serializedFrames.get(totalFramesRendered));
                         totalFramesRendered++;
@@ -125,9 +143,36 @@ public class ClientDriver implements Runnable {
                         totalFramesReceived = 0;
                         totalFramesRendered = 0;
                     }
-                } else {
+                    */
+                    CompletableFuture.runAsync(() -> {
+                        while (simulationRunning) {
+                            try {
+                                TimeUnit.MILLISECONDS.sleep(tick);
+                            } catch (InterruptedException iE) {
+                                System.out.println("[!] Error occured while running simulation.");
+                                simulationRunning = false;
+                                break;
+                            }
+                            if (serializedFrames.containsKey(totalFramesRendered) && serializedFrames.size() > totalFramesRendered) {
+                                int[][] state = deserializeStateFromServer(serializedFrames.get(totalFramesRendered));
+                                totalFramesRendered++;
+                                SwingUtilities.invokeLater(() -> sim.renderNextScene(state, totalFramesRendered));
+                            } else {
+                                System.out.println("[*] Simulation has finished.");
+                                simulationRunning = false;
+                                SwingUtilities.invokeLater(() -> sim.shutdown());
+                                simSpawned = false;
+                                firstFrameRendered = false;
+                                serializedFrames.clear();
+                                totalFramesReceived = 0;
+                                totalFramesRendered = 0;
+                            }
+                        }
+                        go = false;
+                    });
+                }/* else if (!simIsReady && !simulationRunning && !go) {
                     System.out.println(inputChat);
-                }
+                }*/
             }
         } catch (Exception e) {
             shutdown();
@@ -161,6 +206,7 @@ public class ClientDriver implements Runnable {
                 System.out.println("Simulation is being setup.");
             }
             simIsReady = true;
+            tick = 0;
         } else if (cmd.toLowerCase().startsWith("&end sim")) {
             if (!simulationRunning) {
                System.out.println("[*] This command can only be used when the simulation is running.");
@@ -173,8 +219,10 @@ public class ClientDriver implements Runnable {
                     xSize = Integer.parseInt(dataFromCmd[2]);
                     ySize = Integer.parseInt(dataFromCmd[3]);
                 } catch (NumberFormatException nFE) {
-                    System.err.println("NumberFormatException in sendAndHandleCommand()");
+                    System.err.println("Incorrect values were given for the size leading to an error.");
                 }
+                assert(xSize > 0);
+                assert(ySize > 0);
             }
         } else if (cmd.startsWith("&set server signature")) {
             String[] partsOfSigCmd = cmd.trim().split(" ");
@@ -192,6 +240,10 @@ public class ClientDriver implements Runnable {
     }
 
     private void handleSizeMessage(String input) {
+        if (SERVER_SIGNATURE == null) {
+            System.out.println("[!] The server signature has not been initialized, open the help menu to find the command to set it.");
+            return;
+        }
         String[] strSize = input.split(":");
         int x = 0;
         int y = 0;
@@ -203,11 +255,13 @@ public class ClientDriver implements Runnable {
             shutdown();
         }
         InitialPosition frame = new InitialPosition(x, y);
-        while (!frame.isSavePressed) {
-            Thread.onSpinWait();
-        }
-        int[][] initFrame = frame.getFinalCustomPosition();
-        outbound.println(serializeIntArray(initFrame));
+        CompletableFuture.runAsync(() -> {
+            while (!frame.isSavePressed) {
+                Thread.onSpinWait();
+            }
+            int[][] initFrame = frame.getFinalCustomPosition();
+            outbound.println(String.format("&%s%s", SERVER_SIGNATURE, serializeIntArray(initFrame)));
+        });
     }
 
     private String serializeIntArray(int[][] array) {

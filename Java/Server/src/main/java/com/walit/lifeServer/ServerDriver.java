@@ -21,6 +21,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -169,7 +171,7 @@ public class ServerDriver {
         private final Socket connection;
         private PrintWriter outbound;
         private BufferedReader inbound;
-
+        
         private String name;
         private int nameChangesRemaining = 2;
 
@@ -187,7 +189,6 @@ public class ServerDriver {
                 {-1, 0},
                 {-1, 1}
         };
-        private boolean newFrameIsZeroes = false;
         private final Map<Integer, Integer> speedToFPS = new HashMap<>();
         private AtomicBoolean KEEP_SIM_ALIVE;
 
@@ -212,44 +213,40 @@ public class ServerDriver {
             return x > 5 && x <= 75 && y < 75 && y > 5;
         }
 
-        private int startSim() {
+        private void startSim() {
 
             int count = 0;
 
             messageClient(ServerMessage.SimulationStarted.getMessage());
-            int itersOverOnlyZeroes = 0;
-            int tolerance = 20;
             int[][] previousState;
             int[][] nextState;
             int tick = convertSpeedToTickRate(SPEED);
-            outbound.println(connectionSignature + serializeFrame(startPosition));
+            outbound.println(String.format("%s:tick:%d:frame:%s", connectionSignature, tick, serializeFrame(startPosition)));
             try {
                 TimeUnit.SECONDS.sleep(3);
             } catch (InterruptedException iE) {
                 Thread.currentThread().interrupt();
+                messageClient(ServerMessage.SimulationFailure.getMessage());
+                return;
             }
             previousState = startPosition;
             nextState = generateNextFrame(previousState);
-            while (itersOverOnlyZeroes < tolerance) {
-                if (KEEP_SIM_ALIVE.get() == false) {
-                    return 0;
-                }
+            while (KEEP_SIM_ALIVE.get()) {
                 try {
-                    TimeUnit.MILLISECONDS.sleep(tick);
+                    TimeUnit.MILLISECONDS.sleep(100);
                 } catch (InterruptedException iE) {
                     Thread.currentThread().interrupt();
+                    messageClient(ServerMessage.SimulationFailure.getMessage());
+                    return;
                 }
                 String frame = connectionSignature + serializeFrame(nextState);
                 outbound.println(frame);
                 previousState = nextState;
                 nextState = generateNextFrame(previousState);
                 count++;
-                if (!newFrameIsZeroes) {
-                    itersOverOnlyZeroes++;
-                }
             }
             System.out.println("Total frames rendered for " + name + ": " + count);
-            return 1;
+            messageClient(ServerMessage.SimulationFinished.getMessage());
         }
 
         protected int convertSpeedToTickRate(int speed) {
@@ -275,8 +272,6 @@ public class ServerDriver {
         }
 
         protected int[][] generateNextFrame(int[][] lastFrame) {
-            newFrameIsZeroes = false;
-            int count = 0;
             /*
             Rules of Conway's Game of Life
             1. Any live cell with fewer than two live neighbors dies
@@ -290,16 +285,13 @@ public class ServerDriver {
                     int neighbors = countNeighbors(lastFrame, i, j);
                     if (lastFrame[i][j] == 1 && neighbors > 3) {
                         result[i][j] = 0;
-                        count++;
                     } else if ((lastFrame[i][j] == 1 && neighbors >= 2) || (lastFrame[i][j] == 0 && neighbors == 3)) {
                         result[i][j] = 1;
                     } else {
                         result[i][j] = 0;
-                        count++;
                     }
                 }
             }
-            newFrameIsZeroes = count == lastFrame.length * lastFrame[0].length ? true : false;
             return result;
         }
 
@@ -352,6 +344,8 @@ public class ServerDriver {
                             messageAllClients(name + " left the server.");
                             System.out.println("[*] " + name + ServerMessage.ServerClientDC.getMessage());
                             shutdown();
+                        } else if (chat.startsWith(String.format("&%s", connectionSignature))) {
+                            receiveInitialState(chat);
                         } else if (chat.equals("&set server signature " + connectionSignature) && !signatureSet) {
                             signatureSet = true;
                             messageClient(ServerMessage.SignatureSet.getMessage());
@@ -374,6 +368,8 @@ public class ServerDriver {
                         } else if (chat.equals("&end sim")) {
                             if (KEEP_SIM_ALIVE.get() == true) {
                                 KEEP_SIM_ALIVE.set(false);
+                            } else {
+                                messageClient("[!] This command can only be sent when the simulation is running.");
                             }
                         } else {
                             messageClient(ServerMessage.InvalidCommand.getMessage());
@@ -437,17 +433,7 @@ public class ServerDriver {
                     startPosition = getRandomlyGeneratedPosition();
                 }
                 KEEP_SIM_ALIVE.set(true);
-                CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
-                    int result = startSim();
-                    return result;
-                });
-                future.thenAccept(result -> {
-                    if (result == 1) {
-                        messageClient(ServerMessage.SimulationFinished.getMessage());
-                    } else {
-                        messageClient(ServerMessage.SimulationFailure.getMessage());
-                    }
-                });
+                CompletableFuture.runAsync(() -> startSim());
             } else {
                 messageClient(ServerMessage.SimulationInvalid.getMessage());
             }
@@ -460,16 +446,11 @@ public class ServerDriver {
             }
             String message = String.format("%s:SIZE:%d:%d", connectionSignature, xSize, ySize);
             messageClient(message);
-            String initialRes = "";
-            try {
-                initialRes = inbound.readLine();
-            } catch (IOException iE) {
-                messageClient("Error: Server could not fetch position.");
-                return;
-            }
-            startPosition = deserializeStartBoard(initialRes);
-            messageClient("Initial position of simulation has been set.");
+        }
 
+        private void receiveInitialState(String state) {
+            startPosition = deserializeStartBoard(state.substring(connectionSignature.length() + 1));
+            messageClient("Initial position of simulation has been set.");
         }
 
         private void handleSettingSize(String chat) {
@@ -558,6 +539,8 @@ public class ServerDriver {
             helpTxt.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
             helpTxt.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
             helpTxt.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
+            helpTxt.append("&start sim       ->    Start the simulation with the provided settings.\n");
+            helpTxt.append("&end sim         ->    Terminate the simulation.\n");
             helpTxt.append("\n---------------------------------------------------------------------------------------\n\n");
             helpTxt.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
             helpTxt.append("#######################################################################################");
