@@ -21,15 +21,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.time.Instant;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+// TODO: I want to change this from being a chat room with Game of Life commands to a chat room where you can also select a game from a list and then be given permission to use that games commands
 
 public class ServerDriver {
 
     private final ThreadPoolExecutor threadPool;
     private final ArrayList<ClientHandler> connections;
+    private final Set<String> namesUsed;
     private boolean KEEP_ALIVE;
 
     public static void main(String[] args) {
@@ -61,6 +62,7 @@ public class ServerDriver {
     public ServerDriver() {
         threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         connections = new ArrayList<>();
+        namesUsed = new HashSet<>();
         KEEP_ALIVE = true;
     }
 
@@ -69,6 +71,7 @@ public class ServerDriver {
         SIZE = expectedConnections < 1 ? 1 : Math.min(expectedConnections, 20);
         threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(SIZE);
         connections = new ArrayList<>();
+        namesUsed = new HashSet<>();
         KEEP_ALIVE = true;
     }
 
@@ -168,6 +171,12 @@ public class ServerDriver {
 
     class ClientHandler implements Runnable {
 
+
+        // Activities to choose from
+        private boolean noActivityChosen;
+        private boolean conwaysChosen;
+        //private boolean otherGame;
+
         private final Socket connection;
         private PrintWriter outbound;
         private BufferedReader inbound;
@@ -197,6 +206,8 @@ public class ServerDriver {
 
         public ClientHandler(Socket connection) {
             this.connection = connection;
+            conwaysChosen = false;
+            noActivityChosen = true;
             speedToFPS.put(1, 1);
             speedToFPS.put(2, 3);
             speedToFPS.put(3, 5);
@@ -223,7 +234,7 @@ public class ServerDriver {
             int tick = convertSpeedToTickRate(SPEED);
             outbound.println(String.format("%s:tick:%d:frame:%s", connectionSignature, tick, serializeFrame(startPosition)));
             try {
-                TimeUnit.SECONDS.sleep(3);
+                TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException iE) {
                 Thread.currentThread().interrupt();
                 messageClient(ServerMessage.SimulationFailure.getMessage());
@@ -327,16 +338,21 @@ public class ServerDriver {
                 while (name == null || name.length() > 20 || name.length() < 2 && !name.startsWith("&")) {
                     outbound.println("Enter your name: ");
                     name = inbound.readLine();
+                    if (namesUsed.contains(name)) {
+                        name = null;
+                        outbound.println("This name has already been taken!");
+                    }
                 }
+                namesUsed.add(name);
                 System.out.printf("%s registered the name %s.%n", ipAddress, name);
                 messageAllClients(name + " has joined the server.\n");
 
-                // Generate signature and send to client
                 connectionSignature = getUniqueSignature(ipAddress, name);
                 if (connectionSignature.equals("Failed")) {
                     messageClient("Error generating unique signature, try reconnecting if you want to use the simulation functionality.");
                 }
                 messageClient("Send the following command to validate your connection:\n&set server signature " + connectionSignature + "\n");
+
                 String chat;
                 while ((chat = inbound.readLine()) != null) {
                     if (chat.toLowerCase().startsWith("&")) {
@@ -344,33 +360,15 @@ public class ServerDriver {
                             messageAllClients(name + " left the server.");
                             System.out.println("[*] " + name + ServerMessage.ServerClientDC.getMessage());
                             shutdown();
-                        } else if (chat.startsWith(String.format("&%s", connectionSignature))) {
-                            receiveInitialState(chat);
+                        } else if (chat.toLowerCase().startsWith("&name")) {
+                            handleNameChange(chat);
                         } else if (chat.equals("&set server signature " + connectionSignature) && !signatureSet) {
                             signatureSet = true;
                             messageClient(ServerMessage.SignatureSet.getMessage());
-                        } else if (chat.equals("&help")) {
-                            messageClient(getHelpText());
-                        } else if (chat.toLowerCase().startsWith("&set speed")) {
-                            handleSettingSpeed(chat);
-                        } else if (chat.equals("&get speed")) {
-                            sendSpeedToClient();
-                        } else if (chat.toLowerCase().startsWith("&set size")) {
-                            handleSettingSize(chat);
-                        } else if (chat.equals("&get size")) {
-                            sendSizeToClient();
-                        } else if (chat.toLowerCase().startsWith("&set init pos")) {
-                            handleSettingInitialPosition();
-                        } else if (chat.equals("&start sim")) { 
-                            handleSimStartCommand();
-                        } else if (chat.toLowerCase().startsWith("&name")) {
-                            handleNameChange(chat);
-                        } else if (chat.equals("&end sim")) {
-                            if (KEEP_SIM_ALIVE.get() == true) {
-                                KEEP_SIM_ALIVE.set(false);
-                            } else {
-                                messageClient("[!] This command can only be sent when the simulation is running.");
-                            }
+                        } else if (noActivityChosen) {
+                            handleNoActivityCommand(chat);
+                        } else if (conwaysChosen) {
+                            handleConwaysCommands(chat);
                         } else {
                             messageClient(ServerMessage.InvalidCommand.getMessage());
                         }
@@ -392,8 +390,51 @@ public class ServerDriver {
             }
         }
 
+        private void handleNoActivityCommand(String chat) {
+            if (chat.equalsIgnoreCase("&help")) {
+                messageClient(getMainHelpText());
+            } else if (chat.equalsIgnoreCase("&conways")) {
+                conwaysChosen = true;
+                noActivityChosen = false;
+                messageClient("Joined Conway's Game of Life, use &help to view the commands.");
+            } else {
+                messageClient(ServerMessage.InvalidCommand.getMessage());
+            }
+        }
+
+        private void handleConwaysCommands(String chat) {
+            if (chat.equalsIgnoreCase("&help")) {
+                messageClient(getConwaysHelpText());
+            } else if (chat.equalsIgnoreCase("&leave activity")) {
+                conwaysChosen = false;
+                noActivityChosen = true;
+                messageClient(ServerMessage.LeftActivity.getMessage());
+            } else if (chat.startsWith(String.format("&%s", connectionSignature))) {
+                receiveInitialState(chat);
+            } else if (chat.toLowerCase().startsWith("&set speed")) {
+                handleSettingSpeed(chat);
+            } else if (chat.equals("&get speed")) {
+                sendSpeedToClient();
+            } else if (chat.toLowerCase().startsWith("&set size")) {
+                handleSettingSize(chat);
+            } else if (chat.equals("&get size")) {
+                sendSizeToClient();
+            } else if (chat.equalsIgnoreCase("&set init pos")) {
+                handleSettingInitialPosition();
+            } else if (chat.equals("&start sim")) { 
+                handleSimStartCommand();
+            } else if (chat.equals("&end sim")) {
+                if (KEEP_SIM_ALIVE.get() == true) {
+                    KEEP_SIM_ALIVE.set(false);
+                } else {
+                    messageClient("[!] This command can only be sent when the simulation is running.");
+                }
+            } else {
+                messageClient(ServerMessage.InvalidCommand.getMessage());
+            }
+        }
+
         private void handleNameChange(String chat) {
-            handleNameChange(chat);
             if (nameChangesRemaining == 0) {
                 messageClient("You have no name changes remaining.");
                 return;
@@ -404,7 +445,7 @@ public class ServerDriver {
                 return;
             }
             if (cmdAndName[1].equals(name)) {
-                messageClient("This name is already in use.");
+                messageClient("This name is already your existing name.");
                 return;
             }
             if (cmdAndName[1].startsWith("&")) {
@@ -415,10 +456,16 @@ public class ServerDriver {
                 messageClient("This name is not long enough.");
                 return;
             }
+            if (namesUsed.contains(chat)) {
+                messageClient("This name is already in use by another member.");
+                return;
+            }
+            namesUsed.remove(name);
             messageAllClients(String.format("%s has changed their name to %s", name, cmdAndName[1]));
             System.out.printf("%s changed their name to %s.%n", name, cmdAndName[1]);
             messageClient(String.format("%d name changes remaining.", --nameChangesRemaining));
             name = cmdAndName[1];
+            namesUsed.add(name);
         }
 
         private void handleSimStartCommand() {
@@ -523,32 +570,52 @@ public class ServerDriver {
             return board;
         }
 
-        private String getHelpText() {
-            StringBuilder helpTxt = new StringBuilder();
-            helpTxt.append("#######################################################################################");
-            helpTxt.append("\nHow to use commands: \n\n");
-            helpTxt.append("&quit            ->    Enter to exit the chat.\n\n");
-            helpTxt.append("&name NEW_NAME   ->    Enter to change name (2 name changes allowed).\n\n");
+        private String getMainHelpText() {
+            StringBuilder sB = new StringBuilder();
+            sB.append("#######################################################################################");
+            sB.append("\nHow to use commands: \n\n");
+            sB.append("&quit            ->    Enter to exit the chat.\n\n");
+            sB.append("&name NEW_NAME   ->    Enter to change name (2 name changes allowed).\n\n");
             if (!signatureSet) {
-                helpTxt.append("Use this command to verify the signature with the server.\n");
-                helpTxt.append(String.format("&set server signature %s\n\n", connectionSignature));
+                sB.append("Use this command to verify the signature with the server.\n");
+                sB.append(String.format("&set server signature %s\n\n", connectionSignature));
             }
-            helpTxt.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
-            helpTxt.append("                            Size for x and y must be between 5 and 75.\n\n");
-            helpTxt.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
-            helpTxt.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
-            helpTxt.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
-            helpTxt.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
-            helpTxt.append("&start sim       ->    Start the simulation with the provided settings.\n");
-            helpTxt.append("&end sim         ->    Terminate the simulation.\n");
-            helpTxt.append("\n---------------------------------------------------------------------------------------\n\n");
-            helpTxt.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
-            helpTxt.append("#######################################################################################");
-            return helpTxt.toString();
+            sB.append("To choose an activity, use one of the following commands:\n");
+            sB.append("&conways         ->    Build and run a simulation for Conway's Game of Life.\n");
+            sB.append("\n---------------------------------------------------------------------------------------\n\n");
+            sB.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
+            sB.append("#######################################################################################");
+            return sB.toString();
+        }
+
+        private String getConwaysHelpText() {
+            StringBuilder sB = new StringBuilder();
+            sB.append("#######################################################################################");
+            sB.append("\nHow to use commands: \n\n");
+            sB.append("&quit            ->    Enter to exit the chat.\n\n");
+            sB.append("&name NEW_NAME   ->    Enter to change name (2 name changes allowed).\n\n");
+            if (!signatureSet) {
+                sB.append("Use this command to verify the signature with the server.\n");
+                sB.append(String.format("&set server signature %s\n\n", connectionSignature));
+            }
+            sB.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
+            sB.append("                            Size for x and y must be between 5 and 75.\n\n");
+            sB.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
+            sB.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
+            sB.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
+            sB.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
+            sB.append("&start sim       ->    Start the simulation with the provided settings.\n");
+            sB.append("&end sim         ->    Terminate the simulation.\n");
+            sB.append("&leave activity  ->    Leave the current activity.\n");
+            sB.append("\n---------------------------------------------------------------------------------------\n\n");
+            sB.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
+            sB.append("#######################################################################################");
+            return sB.toString();
         }
 
         private void shutdown() {
             try {
+                namesUsed.remove(name);
                 outbound.close();
                 inbound.close();
                 if (!connection.isClosed()) {
