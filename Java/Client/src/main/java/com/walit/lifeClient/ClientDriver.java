@@ -61,7 +61,9 @@ public class ClientDriver implements Runnable {
     @Override
     public void run() {
         try {
-            client = new Socket("10.0.0.59", 4444); // Change to public IP
+            // client = new Socket("10.0.0.59", 4444); // Change to public IP
+            client = new Socket("192.168.20.38", 4444);
+            // client = new Socket("chatroom.ddns.net", 59284);
             inbound = new BufferedReader(new InputStreamReader(client.getInputStream()));
             outbound = new PrintWriter(client.getOutputStream(), true);
             Input input = new Input(this);

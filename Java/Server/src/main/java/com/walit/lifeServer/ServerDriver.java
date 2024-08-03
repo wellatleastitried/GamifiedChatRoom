@@ -24,8 +24,6 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-// TODO: I want to change this from being a chat room with Game of Life commands to a chat room where you can also select a game from a list and then be given permission to use that games commands
-
 public class ServerDriver {
 
     private final ThreadPoolExecutor threadPool;
@@ -99,6 +97,7 @@ public class ServerDriver {
     }
 
     protected boolean checkConcurrentUsersIsOverLimit(int userCount, boolean sendWarning) {
+        System.out.println("Current users: " + userCount);
         if (userCount >= 1000) {
             if (sendWarning) {
                 String email = System.getenv("GMAIL_ADDR");
@@ -353,6 +352,7 @@ public class ServerDriver {
                 }
                 messageClient("Send the following command to validate your connection:\n&set server signature " + connectionSignature + "\n");
 
+                // MAIN LOOP
                 String chat;
                 while ((chat = inbound.readLine()) != null) {
                     if (chat.toLowerCase().startsWith("&")) {
@@ -360,6 +360,9 @@ public class ServerDriver {
                             messageAllClients(name + " left the server.");
                             System.out.println("[*] " + name + ServerMessage.ServerClientDC.getMessage());
                             shutdown();
+                            return;
+                        } else if (chat.equalsIgnoreCase("&help")) {
+                            messageClient(getHelpText());
                         } else if (chat.toLowerCase().startsWith("&name")) {
                             handleNameChange(chat);
                         } else if (chat.equals("&set server signature " + connectionSignature) && !signatureSet) {
@@ -381,19 +384,16 @@ public class ServerDriver {
                     }
                 }
             } catch (IOException iE) {
-                System.err.println(name + ServerMessage.ServerClientDC.getMessage());
+                System.out.println("[*] " + name + ServerMessage.ServerClientDC.getMessage());
                 shutdown();
             } catch (NullPointerException nPE) {
                 System.err.println(ServerMessage.NullException.getMessage());
-                System.err.println(nPE.getMessage());
                 shutdown();
             }
         }
 
         private void handleNoActivityCommand(String chat) {
-            if (chat.equalsIgnoreCase("&help")) {
-                messageClient(getMainHelpText());
-            } else if (chat.equalsIgnoreCase("&conways")) {
+            if (chat.equalsIgnoreCase("&conways")) {
                 conwaysChosen = true;
                 noActivityChosen = false;
                 messageClient("Joined Conway's Game of Life, use &help to view the commands.");
@@ -403,9 +403,7 @@ public class ServerDriver {
         }
 
         private void handleConwaysCommands(String chat) {
-            if (chat.equalsIgnoreCase("&help")) {
-                messageClient(getConwaysHelpText());
-            } else if (chat.equalsIgnoreCase("&leave activity")) {
+            if (chat.equalsIgnoreCase("&leave activity")) {
                 conwaysChosen = false;
                 noActivityChosen = true;
                 messageClient(ServerMessage.LeftActivity.getMessage());
@@ -570,7 +568,7 @@ public class ServerDriver {
             return board;
         }
 
-        private String getMainHelpText() {
+        private String getHelpText() {
             StringBuilder sB = new StringBuilder();
             sB.append("#######################################################################################");
             sB.append("\nHow to use commands: \n\n");
@@ -580,33 +578,20 @@ public class ServerDriver {
                 sB.append("Use this command to verify the signature with the server.\n");
                 sB.append(String.format("&set server signature %s\n\n", connectionSignature));
             }
-            sB.append("To choose an activity, use one of the following commands:\n");
-            sB.append("&conways         ->    Build and run a simulation for Conway's Game of Life.\n");
-            sB.append("\n---------------------------------------------------------------------------------------\n\n");
-            sB.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
-            sB.append("#######################################################################################");
-            return sB.toString();
-        }
-
-        private String getConwaysHelpText() {
-            StringBuilder sB = new StringBuilder();
-            sB.append("#######################################################################################");
-            sB.append("\nHow to use commands: \n\n");
-            sB.append("&quit            ->    Enter to exit the chat.\n\n");
-            sB.append("&name NEW_NAME   ->    Enter to change name (2 name changes allowed).\n\n");
-            if (!signatureSet) {
-                sB.append("Use this command to verify the signature with the server.\n");
-                sB.append(String.format("&set server signature %s\n\n", connectionSignature));
+            if (noActivityChosen) {
+                sB.append("To choose an activity, use one of the following commands:\n");
+                sB.append("&conways         ->    Build and run a simulation for Conway's Game of Life.\n");
+            } else if (conwaysChosen) {
+                sB.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
+                sB.append("                            Size for x and y must be between 5 and 75.\n\n");
+                sB.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
+                sB.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
+                sB.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
+                sB.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
+                sB.append("&start sim       ->    Start the simulation with the provided settings.\n");
+                sB.append("&end sim         ->    Terminate the simulation.\n");
+                sB.append("&leave activity  ->    Leave the current activity.\n");
             }
-            sB.append("&set size        ->    Set the size of the grid (Used as \"&set size x y\").\n");
-            sB.append("                            Size for x and y must be between 5 and 75.\n\n");
-            sB.append("&set init pos    ->    Set the initial configuration of the grid by selecting the cells to be considered \"alive\" (Size of grid must already be set).\n");
-            sB.append("&set speed       ->    Set the speed (1-5) at which the game cycles (Used as \"&set speed x\").\n\n");
-            sB.append("&get speed       ->    Get the current set speed for the tick rate of the simulation.\n");
-            sB.append("&get size        ->    Get the current set size for the grid of the simulation.\n");
-            sB.append("&start sim       ->    Start the simulation with the provided settings.\n");
-            sB.append("&end sim         ->    Terminate the simulation.\n");
-            sB.append("&leave activity  ->    Leave the current activity.\n");
             sB.append("\n---------------------------------------------------------------------------------------\n\n");
             sB.append("Anytime \"&\" is used at the beginning of a chat it will not be displayed in the chat log.\n");
             sB.append("#######################################################################################");
@@ -621,7 +606,6 @@ public class ServerDriver {
                 if (!connection.isClosed()) {
                     connection.close();
                 }
-                System.err.println("Closed connection to client.");
             } catch (IOException iE) {
                 System.err.println("Error closing resources.");
             }
