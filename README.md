@@ -27,5 +27,11 @@ After this is done, the server can be run on your local machine using the JAR fi
 ## Usage
 To start an instance of the server run:
 ```
-java -jar
+java -jar gameOfLife-0.1.0.jar
 ```
+And then connect to the server by running:
+```
+java -jar golClient.jar
+```
+## Notice
+I am well aware that this is cancer to set up yourself and I will fix it in the future
