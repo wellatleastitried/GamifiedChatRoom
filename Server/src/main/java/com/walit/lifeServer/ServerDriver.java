@@ -24,6 +24,10 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/* ******************************************************************************************
+*                       THE LINE TO CHANGE THE PORT NUMBER IS ON LINE 81                    *
+******************************************************************************************* */
+
 public class ServerDriver {
 
     private final ThreadPoolExecutor threadPool;
@@ -74,7 +78,7 @@ public class ServerDriver {
     }
 
     private int runServer() {
-        try (ServerSocket server = new ServerSocket(4444)) {
+        try (ServerSocket server = new ServerSocket(4444)) {                    // CHANGE THIS PORT NUMBER TO WHATEVER PORT YOU WANT TO HOST THE SERVER ON
             System.out.println(ServerMessage.ServerCreated.getMessage());
             System.out.println(ServerMessage.ServerWait.getMessage());
             while (KEEP_ALIVE) {
