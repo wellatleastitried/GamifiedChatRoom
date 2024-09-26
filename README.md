@@ -34,4 +34,5 @@ And then connect to the server by running:
 java -jar golClient.jar
 ```
 ## Notice
-I am well aware that this is cancer to set up yourself and I will fix it in the future
+- I am well aware that this is cancer to set up yourself and I will fix it in the future
+- I will slowly but surely add more games over time. If there is a game you want (within reason, I'm not making Doom) create an issue or a pull request.
