@@ -1,6 +1,6 @@
 # GamifiedChatRoom
-This project will consist of Conway's Game of Life being hosted on a server for clients to connect to and run. The server will handle the rendering and will send out the states to the client machines. This project is going to be done in Java, Python, Go, and Ruby.
-This project started with me wanting to make a Game of Life simulator and ended with me making a fully fledged chat room with the ability to play games both solo or with other people in the chat room.
+
+This project started with me wanting to make a Game of Life simulator in a variety of languages and ended with me making a fully fledged chat room in Java with the ability to play games (that are currently being developed) both solo or with other people in the chat room.
 
 ## Requirements
 - Java 17+
