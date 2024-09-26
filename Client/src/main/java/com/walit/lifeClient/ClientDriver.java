@@ -12,6 +12,10 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+/* ******************************************************************************************
+*                       THE LINE TO CHANGE THE IP AND PORT NUMBER IS ON LINE 69             *
+******************************************************************************************* */
+
 public class ClientDriver implements Runnable {
 
     private Socket client;
